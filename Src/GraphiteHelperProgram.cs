@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -14,8 +14,8 @@ using RT.Util;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("ce61939b-1b63-4503-bab9-41053d419c1c")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.9999.9999")]
+[assembly: AssemblyFileVersion("1.0.9999.9999")]
 
 namespace GraphiteHelper
 {
@@ -29,13 +29,7 @@ namespace GraphiteHelper
         [STAThread]
         static void Main()
         {
-            //foreach (var font in RT.KitchenSink.Fonts.FontUtil.GetFontFamiliesContaining("↑↗→↘↓↙←↖↕⤢↔⤡⇒⇐⇑⇓⇖⇗⇘⇙".Select(c => (int) c)).ToArray())
-            //    Console.WriteLine(font);
-            //Console.WriteLine("Done.");
-            //Console.ReadLine();
-            //return;
-
-            SettingsUtil.LoadSettings(out Settings);
+            SettingsUtil.LoadSettings(out GraphiteHelperProgram.Settings);
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

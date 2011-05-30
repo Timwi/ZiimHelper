@@ -24,7 +24,7 @@ namespace GraphiteHelper
         public int Distance { get; set; }
         public override string ToString()
         {
-            return base.ToString() + " " + Direction.ToStringExt() + (PointTo == null ? "" : " " + Distance + " " + PointTo);
+            return base.ToString() + " " + Direction.ToStringExt() + " " + Distance + " " + (PointTo ?? "∅");
         }
         public override string Arrow { get { return Direction.ToStringExt(); } }
         public override void Rotate(bool clockwise)
@@ -46,8 +46,8 @@ namespace GraphiteHelper
         public override string ToString()
         {
             return base.ToString() + " " + Direction.ToStringExt() +
-                (PointTo1 == null ? "" : " " + Direction.GetDirection1().ToStringExt() + Distance1 + " " + PointTo1) +
-                (PointTo2 == null ? "" : " " + Direction.GetDirection2().ToStringExt() + Distance2 + " " + PointTo2);
+                " ① " + Distance1 + " " + Direction.GetDirection1().ToStringExt() + " " + (PointTo1 ?? "∅") +
+                " ② " + Distance2 + " " + Direction.GetDirection2().ToStringExt() + " " + (PointTo2 ?? "∅");
         }
         public override string Arrow { get { return Direction.ToStringExt(); } }
         public override void Rotate(bool clockwise)

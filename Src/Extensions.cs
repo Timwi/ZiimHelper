@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GraphiteHelper
+namespace ZiimHelper
 {
     static class Extensions
     {

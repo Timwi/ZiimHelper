@@ -7,8 +7,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{D994879D-FBC1-4458-A523-5299772A04BE}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>GraphiteHelper</RootNamespace>
-    <AssemblyName>GraphiteHelper</AssemblyName>
+    <RootNamespace>ZiimHelper</RootNamespace>
+    <AssemblyName>ZiimHelper</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -54,9 +54,9 @@
     <Compile Include="Mainform.Designer.cs">
       <DependentUpon>Mainform.cs</DependentUpon>
     </Compile>
-    <Compile Include="GraphiteHelperProgram.cs" />
     <Compile Include="NameGenerator.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="ZiimHelperProgram.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\RT.Util\Src\RT.KitchenSink.csproj">

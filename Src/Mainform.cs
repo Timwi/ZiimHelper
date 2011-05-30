@@ -10,12 +10,12 @@ using RT.Util.Drawing;
 using RT.Util;
 using System.Drawing.Drawing2D;
 
-namespace GraphiteHelper
+namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
         public Mainform()
-            : base(GraphiteHelperProgram.Settings.FormSettings)
+            : base(ZiimHelperProgram.Settings.FormSettings)
         {
             InitializeComponent();
             revert();
@@ -560,11 +560,11 @@ namespace GraphiteHelper
 
         private void save(object _ = null, EventArgs __ = null)
         {
-            GraphiteHelperProgram.Settings.Arrows = ctList.Items.Cast<ArrowInfo>().ToList();
-            GraphiteHelperProgram.Settings.SelectedIndices = ctList.SelectedIndices.Cast<int>().ToList();
-            GraphiteHelperProgram.Settings.OutlineIndex = ctList.OutlineIndex;
+            ZiimHelperProgram.Settings.Arrows = ctList.Items.Cast<ArrowInfo>().ToList();
+            ZiimHelperProgram.Settings.SelectedIndices = ctList.SelectedIndices.Cast<int>().ToList();
+            ZiimHelperProgram.Settings.OutlineIndex = ctList.OutlineIndex;
 
-            SettingsUtil.SaveSettings(GraphiteHelperProgram.Settings, SettingsUtil.OnFailure.ShowRetryOnly);
+            SettingsUtil.SaveSettings(ZiimHelperProgram.Settings, SettingsUtil.OnFailure.ShowRetryOnly);
         }
 
         private void moveArrow(object sender, EventArgs __)
@@ -644,14 +644,14 @@ namespace GraphiteHelper
         private void revert(object sender = null, EventArgs __ = null)
         {
             if (sender != null)
-                SettingsUtil.LoadSettings(out GraphiteHelperProgram.Settings);
+                SettingsUtil.LoadSettings(out ZiimHelperProgram.Settings);
             ctList.Items.Clear();
-            foreach (var arr in GraphiteHelperProgram.Settings.Arrows)
+            foreach (var arr in ZiimHelperProgram.Settings.Arrows)
                 ctList.Items.Add(arr);
-            foreach (var index in GraphiteHelperProgram.Settings.SelectedIndices)
+            foreach (var index in ZiimHelperProgram.Settings.SelectedIndices)
                 ctList.SelectedIndices.Add(index);
-            if (GraphiteHelperProgram.Settings.OutlineIndex >= 0 && GraphiteHelperProgram.Settings.OutlineIndex < ctList.Items.Count)
-                ctList.OutlineIndex = GraphiteHelperProgram.Settings.OutlineIndex;
+            if (ZiimHelperProgram.Settings.OutlineIndex >= 0 && ZiimHelperProgram.Settings.OutlineIndex < ctList.Items.Count)
+                ctList.OutlineIndex = ZiimHelperProgram.Settings.OutlineIndex;
             refresh();
         }
     }

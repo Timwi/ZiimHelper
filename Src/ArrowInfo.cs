@@ -1,7 +1,7 @@
 ﻿using RT.Util.ExtensionMethods;
 using System;
 
-namespace GraphiteHelper
+namespace ZiimHelper
 {
     abstract class ArrowInfo
     {

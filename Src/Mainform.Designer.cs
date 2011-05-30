@@ -1,4 +1,4 @@
-﻿namespace GraphiteHelper
+﻿namespace ZiimHelper
 {
     partial class Mainform
     {
@@ -53,11 +53,11 @@
             this.miSortByName = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.miSave = new System.Windows.Forms.ToolStripMenuItem();
+            this.miRevert = new System.Windows.Forms.ToolStripMenuItem();
             this.miUnusedMnemonics = new System.Windows.Forms.ToolStripMenuItem();
             this.splitMain = new RT.Util.Controls.SplitContainerEx();
             this.ctList = new RT.Util.Controls.ListBoxEx();
             this.ctImage = new RT.Util.Controls.DoubleBufferedPanel();
-            this.miRevert = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuContext.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) (this.splitMain)).BeginInit();
             this.splitMain.Panel1.SuspendLayout();
@@ -288,6 +288,14 @@
             this.miSave.Text = "&Save";
             this.miSave.Click += new System.EventHandler(this.save);
             // 
+            // miRevert
+            // 
+            this.miRevert.Name = "miRevert";
+            this.miRevert.ShortcutKeys = System.Windows.Forms.Keys.F5;
+            this.miRevert.Size = new System.Drawing.Size(242, 22);
+            this.miRevert.Text = "Re&vert";
+            this.miRevert.Click += new System.EventHandler(this.revert);
+            // 
             // miUnusedMnemonics
             // 
             this.miUnusedMnemonics.Name = "miUnusedMnemonics";
@@ -340,14 +348,6 @@
             this.ctImage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.imageMouseMove);
             this.ctImage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.imageMouseUp);
             // 
-            // revertToolStripMenuItem
-            // 
-            this.miRevert.Name = "revertToolStripMenuItem";
-            this.miRevert.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.miRevert.Size = new System.Drawing.Size(242, 22);
-            this.miRevert.Text = "Re&vert";
-            this.miRevert.Click += new System.EventHandler(this.revert);
-            // 
             // Mainform
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -355,7 +355,7 @@
             this.ClientSize = new System.Drawing.Size(716, 679);
             this.Controls.Add(this.splitMain);
             this.Name = "Mainform";
-            this.Text = "Graphite Helper";
+            this.Text = "Ziim Helper";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.save);
             this.mnuContext.ResumeLayout(false);
             this.splitMain.Panel1.ResumeLayout(false);

@@ -5,9 +5,9 @@ using System.Text;
 using RT.Util;
 using RT.Util.Forms;
 
-namespace GraphiteHelper
+namespace ZiimHelper
 {
-    [Settings("GraphiteHelper", SettingsKind.UserSpecific)]
+    [Settings("ZiimHelper", SettingsKind.UserSpecific)]
     sealed class Settings : SettingsBase
     {
         public List<ArrowInfo> Arrows = new List<ArrowInfo>();

@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using RT.Util;
 
-[assembly: AssemblyTitle("GraphiteHelper")]
+[assembly: AssemblyTitle("ZiimHelper")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GraphiteHelper")]
+[assembly: AssemblyProduct("ZiimHelper")]
 [assembly: AssemblyCopyright("Copyright © CuteBits 2011")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -17,9 +17,9 @@ using RT.Util;
 [assembly: AssemblyVersion("1.0.9999.9999")]
 [assembly: AssemblyFileVersion("1.0.9999.9999")]
 
-namespace GraphiteHelper
+namespace ZiimHelper
 {
-    static class GraphiteHelperProgram
+    static class ZiimHelperProgram
     {
         public static Settings Settings;
 
@@ -29,7 +29,7 @@ namespace GraphiteHelper
         [STAThread]
         static void Main()
         {
-            SettingsUtil.LoadSettings(out GraphiteHelperProgram.Settings);
+            SettingsUtil.LoadSettings(out ZiimHelperProgram.Settings);
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

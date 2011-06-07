@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
+using RT.Util;
 using RT.Util.Dialogs;
+using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
-using System.Drawing;
-using RT.Util.Drawing;
-using RT.Util;
-using System.Drawing.Drawing2D;
 
 namespace ZiimHelper
 {
@@ -242,9 +242,9 @@ namespace ZiimHelper
                 var fontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), ctImage.Font.FontFamily, arr.Arrow);
                 e.Graphics.DrawString(arr.Arrow, new Font(ctImage.Font.FontFamily, fontSize), Brushes.Black, _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 2,
                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
-                drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
+                drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize - _paintCellSize * 1 / 5), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
                 if (arr.Warning != null)
-                    drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize * 4 / 5), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
+                    drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
 
                 var sai = arr as SingleArrowInfo;
                 var dai = arr as DoubleArrowInfo;
@@ -291,13 +291,13 @@ namespace ZiimHelper
 
         private void drawInRoundedRectangle(Graphics g, string text, PointF location, Color background, Color outline, Color textColor)
         {
-            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near };
-            var size = g.MeasureString(text, ctImage.Font, int.MaxValue, sf) + new SizeF(10, 10);
-            var realLocation = location - new SizeF(size.Width / 2, 10);
+            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            var size = g.MeasureString(text, ctImage.Font, int.MaxValue, sf) + new SizeF(6, 2);
+            var realLocation = location - new SizeF(size.Width / 2, size.Height / 2);
             var path = GraphicsUtil.RoundedRectangle(new RectangleF(realLocation, size), 5);
             g.FillPath(new SolidBrush(background), path);
-            g.DrawPath(new Pen(outline, 2), path);
-            g.DrawString(text, ctImage.Font, new SolidBrush(textColor), new RectangleF(realLocation + new SizeF(5, 5), size - new SizeF(10, 10)), sf);
+            g.DrawPath(new Pen(outline, 1), path);
+            g.DrawString(text, ctImage.Font, new SolidBrush(textColor), new RectangleF(realLocation + new SizeF(3, 1), size - new SizeF(6, 2)), sf);
         }
 
         private void rotate(object sender, EventArgs __)
@@ -315,7 +315,7 @@ namespace ZiimHelper
             {
                 var todo = ctList.Items.Cast<ArrowInfo>().ToDictionary(a => a.Name);
                 var done = new Dictionary<string, ArrowInfo>();
-                var taken = new Dictionary<int, Dictionary<int, string>>();
+                var taken = new Dictionary<int, Dictionary<int, ArrowInfo>>();
 
                 var node = ctList.SelectedItems.Cast<ArrowInfo>().FirstOrDefault() ?? todo.First().Value;
                 while (true)
@@ -353,7 +353,7 @@ namespace ZiimHelper
                     {
                         x += xoff;
                         y += yoff;
-                        if (taken.ContainsKey(x) && taken[x].ContainsKey(y))
+                        if (taken.ContainsKey(x) && taken[x].ContainsKey(y) && taken[x][y].X == x && taken[x][y].Y == y)
                             item.Warning = msg;
                     }
                     while (x > minX && x < maxX && y > minY && y < maxY);
@@ -380,22 +380,23 @@ namespace ZiimHelper
             refresh();
         }
 
-        private void reflowRecurse(Dictionary<string, ArrowInfo> todo, Dictionary<string, ArrowInfo> done, Dictionary<int, Dictionary<int, string>> taken, ArrowInfo cur, int x, int y)
+        private void reflowRecurse(Dictionary<string, ArrowInfo> todo, Dictionary<string, ArrowInfo> done, Dictionary<int, Dictionary<int, ArrowInfo>> taken, ArrowInfo cur, int x, int y)
         {
-            cur.Warning = taken.ContainsKey(x) && taken[x].ContainsKey(y) ? taken[x][y] : null;
+            cur.Warning = taken.ContainsKey(x) && taken[x].ContainsKey(y) ? "Conflicts with {0}.".Fmt(taken[x][y].Name) : null;
             cur.X = x;
             cur.Y = y;
             todo.Remove(cur.Name);
             done[cur.Name] = cur;
 
-            Action<int, int, int, string> setWarning = (xOffset, yOffset, distance, warning) =>
+            Action<int, int, int, ArrowInfo> setWarning = (xOffset, yOffset, distance, item) =>
             {
+                string warning = "Conflicts with {0}.".Fmt(item.Name);
                 for (int i = 0; i < distance; i++)
                 {
                     foreach (var don in done.Values)
                         if (don != cur && don.X == x + xOffset * i && don.Y == y + yOffset * i)
                             don.Warning = don.Warning.AddLine(warning);
-                    taken.AddSafe(x + xOffset * i, y + yOffset * i, warning);
+                    taken.AddSafe(x + xOffset * i, y + yOffset * i, item);
                 }
             };
 
@@ -407,7 +408,7 @@ namespace ZiimHelper
             {
                 var xOffset = sai.Direction.XOffset();
                 var yOffset = sai.Direction.YOffset();
-                setWarning(xOffset, yOffset, sai.Distance, "Cell taken by {0}.".Fmt(sai.Name));
+                setWarning(xOffset, yOffset, sai.Distance, sai);
 
                 if (todo.TryGetValue(sai.PointTo, out target))
                     reflowRecurse(todo, done, taken, target, x + xOffset * sai.Distance, y + yOffset * sai.Distance);
@@ -425,7 +426,7 @@ namespace ZiimHelper
                 {
                     var xOffset = dai.Direction.GetDirection1().XOffset();
                     var yOffset = dai.Direction.GetDirection1().YOffset();
-                    setWarning(xOffset, yOffset, dai.Distance1, "Cell taken by {0}.".Fmt(dai.Name));
+                    setWarning(xOffset, yOffset, dai.Distance1, dai);
 
                     if (todo.TryGetValue(dai.PointTo1, out target))
                         reflowRecurse(todo, done, taken, target, x + xOffset * dai.Distance1, y + yOffset * dai.Distance1);
@@ -442,7 +443,7 @@ namespace ZiimHelper
                 {
                     var xOffset = dai.Direction.GetDirection2().XOffset();
                     var yOffset = dai.Direction.GetDirection2().YOffset();
-                    setWarning(xOffset, yOffset, dai.Distance2, "Cell taken by {0}.".Fmt(dai.Name));
+                    setWarning(xOffset, yOffset, dai.Distance2, dai);
 
                     if (todo.TryGetValue(dai.PointTo2, out target))
                         reflowRecurse(todo, done, taken, target, x + xOffset * dai.Distance2, y + yOffset * dai.Distance2);

@@ -337,7 +337,7 @@
             // ctImage
             // 
             this.ctImage.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.ctImage.Font = new System.Drawing.Font("Cambria", 10F);
+            this.ctImage.Font = new System.Drawing.Font("Cambria", 7F);
             this.ctImage.Location = new System.Drawing.Point(0, 0);
             this.ctImage.Name = "ctImage";
             this.ctImage.Size = new System.Drawing.Size(515, 679);

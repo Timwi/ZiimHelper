@@ -35,7 +35,7 @@ namespace ZiimHelper
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Mainform());
 
-            SettingsUtil.SaveSettings(Settings, SettingsUtil.OnFailure.ShowRetryOnly);
+            Settings.Save(onFailure: SettingsOnFailure.ShowRetryOnly);
         }
     }
 }

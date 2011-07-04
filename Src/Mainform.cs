@@ -242,9 +242,9 @@ namespace ZiimHelper
                 var fontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), ctImage.Font.FontFamily, arr.Arrow);
                 e.Graphics.DrawString(arr.Arrow, new Font(ctImage.Font.FontFamily, fontSize), Brushes.Black, _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 2,
                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
-                drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize - _paintCellSize * 1 / 5), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
+                drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
                 if (arr.Warning != null)
-                    drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
+                    drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize * 4 / 5), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
 
                 var sai = arr as SingleArrowInfo;
                 var dai = arr as DoubleArrowInfo;
@@ -564,8 +564,7 @@ namespace ZiimHelper
             ZiimHelperProgram.Settings.Arrows = ctList.Items.Cast<ArrowInfo>().ToList();
             ZiimHelperProgram.Settings.SelectedIndices = ctList.SelectedIndices.Cast<int>().ToList();
             ZiimHelperProgram.Settings.OutlineIndex = ctList.OutlineIndex;
-
-            SettingsUtil.SaveSettings(ZiimHelperProgram.Settings, SettingsUtil.OnFailure.ShowRetryOnly);
+            ZiimHelperProgram.Settings.Save(onFailure: SettingsOnFailure.ShowRetryOnly);
         }
 
         private void moveArrow(object sender, EventArgs __)

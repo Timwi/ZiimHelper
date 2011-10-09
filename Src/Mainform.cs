@@ -344,7 +344,7 @@ namespace ZiimHelper
                 }
 
                 // Check whether any arrows are pointing to an arrow that they shouldn’t
-                Action<ArrowInfo, Direction, string> check = (item, dir, msg) =>
+                var check = Ut.Lambda((ArrowInfo item, Direction dir, string msg) =>
                 {
                     var xoff = dir.XOffset();
                     var yoff = dir.YOffset();
@@ -357,15 +357,18 @@ namespace ZiimHelper
                             item.Warning = msg;
                     }
                     while (x > minX && x < maxX && y > minY && y < maxY);
-                };
+                });
                 foreach (var item in ctList.Items.Cast<ArrowInfo>())
                 {
-                    SingleArrowInfo sai;
-                    DoubleArrowInfo dai;
-                    if ((sai = item as SingleArrowInfo) != null && sai.PointTo == null)
-                        check(item, sai.Direction, "Points to arrow.");
-                    else if ((dai = item as DoubleArrowInfo) != null)
+                    if (item is SingleArrowInfo)
                     {
+                        var sai = (SingleArrowInfo) item;
+                        if (sai.PointTo == null)
+                            check(item, sai.Direction, "Points to arrow.");
+                    }
+                    else
+                    {
+                        var dai = (DoubleArrowInfo) item;
                         if (dai.PointTo1 == null)
                             check(item, dai.Direction.GetDirection1(), "Points to arrow (1).");
                         if (dai.PointTo2 == null)

@@ -1,5 +1,6 @@
 ﻿using RT.Util.ExtensionMethods;
 using System;
+using RT.Util;
 
 namespace ZiimHelper
 {
@@ -52,10 +53,23 @@ namespace ZiimHelper
         public override string Arrow { get { return Direction.ToStringExt(); } }
         public override void Rotate(bool clockwise)
         {
+            bool swap;
             if (clockwise)
+            {
                 Direction = (DoubleDirection) (((int) Direction + 1) % 4);
+                swap = Direction == DoubleDirection.UpDown;
+
+            }
             else
+            {
                 Direction = (DoubleDirection) (((int) Direction + 3) % 4);
+                swap = Direction == DoubleDirection.DownRightUpLeft;
+            }
+            if (swap)
+            {
+                var p = PointTo1; PointTo1 = PointTo2; PointTo2 = p;
+                var d = Distance1; Distance1 = Distance2; Distance2 = d;
+            }
         }
     }
 }

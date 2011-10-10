@@ -4,18 +4,18 @@ namespace ZiimHelper
 {
     static class Extensions
     {
-        public static string ToStringExt(this Direction dir)
+        public static char ToChar(this Direction dir)
         {
             switch (dir)
             {
-                case Direction.Up: return "↑";
-                case Direction.UpRight: return "↗";
-                case Direction.Right: return "→";
-                case Direction.DownRight: return "↘";
-                case Direction.Down: return "↓";
-                case Direction.DownLeft: return "↙";
-                case Direction.Left: return "←";
-                case Direction.UpLeft: return "↖";
+                case Direction.Up: return '↑';
+                case Direction.UpRight: return '↗';
+                case Direction.Right: return '→';
+                case Direction.DownRight: return '↘';
+                case Direction.Down: return '↓';
+                case Direction.DownLeft: return '↙';
+                case Direction.Left: return '←';
+                case Direction.UpLeft: return '↖';
                 default: throw new InvalidOperationException();
             }
         }
@@ -64,14 +64,14 @@ namespace ZiimHelper
             }
         }
 
-        public static string ToStringExt(this DoubleDirection dir)
+        public static char ToChar(this DoubleDirection dir)
         {
             switch (dir)
             {
-                case DoubleDirection.UpDown: return "↕";
-                case DoubleDirection.UpRightDownLeft: return "⤢";
-                case DoubleDirection.RightLeft: return "↔";
-                case DoubleDirection.DownRightUpLeft: return "⤡";
+                case DoubleDirection.UpDown: return '↕';
+                case DoubleDirection.UpRightDownLeft: return '⤢';
+                case DoubleDirection.RightLeft: return '↔';
+                case DoubleDirection.DownRightUpLeft: return '⤡';
                 default: throw new InvalidOperationException();
             }
         }

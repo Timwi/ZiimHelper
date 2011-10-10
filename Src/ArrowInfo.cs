@@ -10,11 +10,12 @@ namespace ZiimHelper
         public int X { get; set; }
         public int Y { get; set; }
         public string Warning { get; set; }
+        public bool Marked { get; set; }
         public override string ToString()
         {
-            return Name + " (" + X + ", " + Y + ")";
+            return Name + " (" + X + ", " + Y + ")" + (Marked ? " M" : "");
         }
-        public abstract string Arrow { get; }
+        public abstract char Arrow { get; }
         public abstract void Rotate(bool clockwise);
     }
 
@@ -25,9 +26,9 @@ namespace ZiimHelper
         public int Distance { get; set; }
         public override string ToString()
         {
-            return base.ToString() + " " + Direction.ToStringExt() + " " + Distance + " " + (PointTo ?? "∅");
+            return base.ToString() + " " + Direction.ToChar() + " " + Distance + " " + (PointTo ?? "∅");
         }
-        public override string Arrow { get { return Direction.ToStringExt(); } }
+        public override char Arrow { get { return Direction.ToChar(); } }
         public override void Rotate(bool clockwise)
         {
             if (clockwise)
@@ -46,11 +47,11 @@ namespace ZiimHelper
         public int Distance2 { get; set; }
         public override string ToString()
         {
-            return base.ToString() + " " + Direction.ToStringExt() +
-                " ① " + Distance1 + " " + Direction.GetDirection1().ToStringExt() + " " + (PointTo1 ?? "∅") +
-                " ② " + Distance2 + " " + Direction.GetDirection2().ToStringExt() + " " + (PointTo2 ?? "∅");
+            return base.ToString() + " " + Direction.ToChar() +
+                " ① " + Distance1 + " " + Direction.GetDirection1().ToChar() + " " + (PointTo1 ?? "∅") +
+                " ② " + Distance2 + " " + Direction.GetDirection2().ToChar() + " " + (PointTo2 ?? "∅");
         }
-        public override string Arrow { get { return Direction.ToStringExt(); } }
+        public override char Arrow { get { return Direction.ToChar(); } }
         public override void Rotate(bool clockwise)
         {
             bool swap;

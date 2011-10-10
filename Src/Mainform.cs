@@ -9,6 +9,7 @@ using RT.Util.Dialogs;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
+using System.Threading;
 
 namespace ZiimHelper
 {
@@ -27,7 +28,7 @@ namespace ZiimHelper
             var names = new HashSet<string>(ctList.Items.Cast<ArrowInfo>().Select(a => a.Name));
             string newName;
             do
-                newName = nameGen.NextName();
+                newName = ZiimHelperProgram.Settings.NewArrowPrefix + nameGen.NextName();
             while (names.Contains(newName));
             var arr = sender == miNewSingleArrow ? (ArrowInfo) new SingleArrowInfo { Name = newName } : new DoubleArrowInfo { Name = newName };
 
@@ -95,7 +96,7 @@ namespace ZiimHelper
                 ctList.ClearSelected();
                 ctList.SelectedIndex = s >= ctList.Items.Count ? s - 1 : s;
             }
-            ctImage.Refresh();
+            refresh();
         }
 
         private bool _suppressRepaint;
@@ -190,6 +191,29 @@ namespace ZiimHelper
                     _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 8,
                     _paintCellSize * 6 / 8, _paintCellSize * 6 / 8);
 
+            if (decor)
+            {
+                var arrowsByName = ctList.Items.Cast<ArrowInfo>().ToDictionary(a => a.Name);
+                foreach (var arr in ctList.Items.Cast<ArrowInfo>())
+                {
+                    var sai = arr as SingleArrowInfo;
+                    var dai = arr as DoubleArrowInfo;
+                    ArrowInfo targetArr;
+                    if (sai != null && sai.PointTo != null && arrowsByName.TryGetValue(sai.PointTo, out targetArr))
+                        drawHit(e.Graphics, sai.X - _paintMinX, sai.Y - _paintMinY, sai.Direction.XOffset(), sai.Direction.YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY,
+                            _paintCellSize, _paintTarget.Left, _paintTarget.Top, sai.Distance);
+                    else if (dai != null)
+                    {
+                        if (dai.PointTo1 != null && arrowsByName.TryGetValue(dai.PointTo1, out targetArr))
+                            drawHit(e.Graphics, dai.X - _paintMinX, dai.Y - _paintMinY, dai.Direction.GetDirection1().XOffset(), dai.Direction.GetDirection1().YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY,
+                                _paintCellSize, _paintTarget.Left, _paintTarget.Top, dai.Distance1);
+                        if (dai.PointTo2 != null && arrowsByName.TryGetValue(dai.PointTo2, out targetArr))
+                            drawHit(e.Graphics, dai.X - _paintMinX, dai.Y - _paintMinY, dai.Direction.GetDirection2().XOffset(), dai.Direction.GetDirection2().YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY,
+                                _paintCellSize, _paintTarget.Left, _paintTarget.Top, dai.Distance2);
+                    }
+                }
+            }
+
             if (_imageMouseDown != null)
             {
                 var minX = Math.Min(_imageMouseDown.Value.X, _imageMouseDraggedTo.X);
@@ -208,6 +232,8 @@ namespace ZiimHelper
         private int _paintMaxY;
         private Rectangle _paintTarget;
         private int _paintCellSize;
+
+        private const bool decor = true;
 
         private void paintBuffer(object _, PaintEventArgs e)
         {
@@ -229,62 +255,98 @@ namespace ZiimHelper
 
             _paintCellSize = _paintTarget.Width / (_paintMaxX - _paintMinX + 1);
 
-            for (int i = 1; i <= _paintMaxX - _paintMinX; i++)
-                e.Graphics.DrawLine(Pens.Black, _paintTarget.Left + i * _paintCellSize, _paintTarget.Top, _paintTarget.Left + i * _paintCellSize, _paintTarget.Bottom);
-            for (int j = 1; j <= _paintMaxY - _paintMinY; j++)
-                e.Graphics.DrawLine(Pens.Black, _paintTarget.Left, _paintTarget.Top + j * _paintCellSize, _paintTarget.Right, _paintTarget.Top + j * _paintCellSize);
+            if (decor)
+            {
+                for (int i = 1; i <= _paintMaxX - _paintMinX; i++)
+                    e.Graphics.DrawLine(Pens.Black, _paintTarget.Left + i * _paintCellSize, _paintTarget.Top, _paintTarget.Left + i * _paintCellSize, _paintTarget.Bottom);
+                for (int j = 1; j <= _paintMaxY - _paintMinY; j++)
+                    e.Graphics.DrawLine(Pens.Black, _paintTarget.Left, _paintTarget.Top + j * _paintCellSize, _paintTarget.Right, _paintTarget.Top + j * _paintCellSize);
+            }
 
             var arrowsByName = ctList.Items.Cast<ArrowInfo>().ToDictionary(a => a.Name);
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
             foreach (var arr in ctList.Items.Cast<ArrowInfo>())
             {
-                var fontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), ctImage.Font.FontFamily, arr.Arrow);
-                e.Graphics.DrawString(arr.Arrow, new Font(ctImage.Font.FontFamily, fontSize), Brushes.Black, _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 2,
+                var fontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), ctImage.Font.FontFamily, arr.Arrow.ToString());
+                e.Graphics.DrawString(arr.Arrow.ToString(), new Font(ctImage.Font.FontFamily, fontSize), arr.Marked ? Brushes.Red : Brushes.Black, _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 2,
                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
-                drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
-                if (arr.Warning != null)
-                    drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize * 4 / 5), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
+                if (decor)
+                {
+                    drawInRoundedRectangle(e.Graphics, arr.Name, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
+                    if (arr.Warning != null)
+                        drawInRoundedRectangle(e.Graphics, arr.Warning, new PointF(_paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2, _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize * 4 / 5), Color.FromArgb(0xFF, 0xEE, 0xEE), Color.Red, Color.DarkRed);
 
-                var sai = arr as SingleArrowInfo;
-                var dai = arr as DoubleArrowInfo;
-                ArrowInfo targetArr;
-                if (sai != null && sai.PointTo != null && arrowsByName.TryGetValue(sai.PointTo, out targetArr))
-                {
-                    hitFromDic.AddSafe(targetArr, sai.Direction);
-                    drawHit(e.Graphics, sai.X - _paintMinX, sai.Y - _paintMinY, sai.Direction.XOffset(), sai.Direction.YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY, _paintCellSize, _paintTarget.Left, _paintTarget.Top);
-                }
-                else if (dai != null)
-                {
-                    if (dai.PointTo1 != null && arrowsByName.TryGetValue(dai.PointTo1, out targetArr))
+                    var sai = arr as SingleArrowInfo;
+                    var dai = arr as DoubleArrowInfo;
+                    ArrowInfo targetArr;
+                    if (sai != null && sai.PointTo != null && arrowsByName.TryGetValue(sai.PointTo, out targetArr))
+                        hitFromDic.AddSafe(targetArr, sai.Direction);
+                    else if (dai != null)
                     {
-                        hitFromDic.AddSafe(targetArr, dai.Direction.GetDirection1());
-                        drawHit(e.Graphics, dai.X - _paintMinX, dai.Y - _paintMinY, dai.Direction.GetDirection1().XOffset(), dai.Direction.GetDirection1().YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY, _paintCellSize, _paintTarget.Left, _paintTarget.Top);
-                    }
-                    if (dai.PointTo2 != null && arrowsByName.TryGetValue(dai.PointTo2, out targetArr))
-                    {
-                        hitFromDic.AddSafe(targetArr, dai.Direction.GetDirection2());
-                        drawHit(e.Graphics, dai.X - _paintMinX, dai.Y - _paintMinY, dai.Direction.GetDirection2().XOffset(), dai.Direction.GetDirection2().YOffset(), targetArr.X - _paintMinX, targetArr.Y - _paintMinY, _paintCellSize, _paintTarget.Left, _paintTarget.Top);
+                        if (dai.PointTo1 != null && arrowsByName.TryGetValue(dai.PointTo1, out targetArr))
+                            hitFromDic.AddSafe(targetArr, dai.Direction.GetDirection1());
+                        if (dai.PointTo2 != null && arrowsByName.TryGetValue(dai.PointTo2, out targetArr))
+                            hitFromDic.AddSafe(targetArr, dai.Direction.GetDirection2());
                     }
                 }
             }
 
-            foreach (var kvp in hitFromDic)
+            if (decor)
             {
-                var arr = kvp.Key;
-                var smallFontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize / 3, _paintCellSize / 3), ctImage.Font.FontFamily, arr.Arrow);
-                //new Font(ctImage.Font.FontFamily, ctImage.Font.Size * .75f)
-                foreach (var dir in kvp.Value)
-                    e.Graphics.DrawString(dir.ToStringExt(), new Font(ctImage.Font.FontFamily, smallFontSize), Brushes.DarkGreen,
-                        _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 2 - _paintCellSize * dir.XOffset() * 3 / 10,
-                        _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 2 - _paintCellSize * dir.YOffset() * 3 / 10,
-                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+                foreach (var arr in ctList.Items.Cast<ArrowInfo>())
+                {
+                    var x = _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize;
+                    var y = _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize;
+
+                    var directions = hitFromDic.ContainsKey(arr) ? hitFromDic[arr] : null;
+                    if (directions != null)
+                    {
+                        var smallFontSize = e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize / 3, _paintCellSize / 3), ctImage.Font.FontFamily, arr.Arrow.ToString());
+                        foreach (var dir in directions)
+                            e.Graphics.DrawString(dir.ToChar().ToString(), new Font(ctImage.Font.FontFamily, smallFontSize), Brushes.DarkGreen,
+                                x + _paintCellSize / 2 - _paintCellSize * dir.XOffset() * 3 / 10,
+                                y + _paintCellSize / 2 - _paintCellSize * dir.YOffset() * 3 / 10,
+                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+                    }
+
+                    if (arr is SingleArrowInfo)
+                    {
+                        var sai = (SingleArrowInfo) arr;
+                        if (directions != null)
+                            directions.Remove((Direction) (((int) sai.Direction + 4) % 8));
+                        if (directions == null || directions.Count == 0)   // { 0 }
+                            continue;
+                        if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 3) % 8))     // invert
+                            continue;
+                        if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 5) % 8))     // no-op
+                            continue;
+                        if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 4) % 8))     // output
+                            continue;
+                        if (directions.Count == 2 && directions.Contains((Direction) (((int) sai.Direction + 1) % 8)) && directions.Contains((Direction) (((int) sai.Direction + 7) % 8)))  // concatenator
+                            continue;
+                    }
+                    else
+                    {
+                        var dai = (DoubleArrowInfo) arr;
+                        if (directions != null)
+                        {
+                            directions.Remove((Direction) (((int) dai.Direction.GetDirection1() + 4) % 8));
+                            directions.Remove((Direction) (((int) dai.Direction.GetDirection2() + 4) % 8));
+                        }
+                        if (directions != null && directions.Count == 1 && (directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8) || directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 6) % 8)))  // splitter
+                            continue;
+                    }
+                    e.Graphics.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, _paintCellSize, _paintCellSize);
+                }
             }
         }
 
-        private void drawHit(Graphics g, int fromX, int fromY, int dirX, int dirY, int toX, int toY, int cellSize, int left, int top)
+        private void drawHit(Graphics g, int fromX, int fromY, int dirX, int dirY, int toX, int toY, int cellSize, int left, int top, int expectedDistance)
         {
-            g.DrawLine(new Pen(new SolidBrush(Color.Orange)) { EndCap = LineCap.ArrowAnchor },
+            var correct = toX - fromX == dirX * expectedDistance && toY - fromY == dirY * expectedDistance;
+            var acceptable = dirX == 0 || dirY == 0 || (toX - fromX) / dirX == (toY - fromY) / dirY;
+            g.DrawLine(new Pen(new SolidBrush(correct ? Color.LightGreen : Color.Red), correct || acceptable ? 1f : 2f) /*{ EndCap = LineCap.ArrowAnchor }*/,
                 left + cellSize * fromX + cellSize / 2 + dirX * cellSize / 4, top + cellSize * fromY + cellSize / 2 + dirY * cellSize / 4,
                 left + cellSize * toX + cellSize / 2 - dirX * cellSize / 4, top + cellSize * toY + cellSize / 2 - dirY * cellSize / 4);
         }
@@ -556,10 +618,33 @@ namespace ZiimHelper
             refresh();
         }
 
+        private bool _requireRefresh = false;
+
         private void refresh()
         {
-            ctList.RefreshItems();
-            ctImage.Refresh();
+            _requireRefresh = true;
+            new Thread(() =>
+            {
+                Thread.Sleep(100);
+                tryAgain:
+                try
+                {
+                    Invoke(new Action(() =>
+                    {
+                        if (_requireRefresh)
+                        {
+                            _requireRefresh = false;
+                            ctList.RefreshItems();
+                            ctImage.Refresh();
+                        }
+                    }));
+                }
+                catch (NullReferenceException)
+                {
+                    Thread.Sleep(1000);
+                    goto tryAgain;
+                }
+            }).Start();
         }
 
         private void save(object _ = null, EventArgs __ = null)
@@ -636,9 +721,10 @@ namespace ZiimHelper
             var maxY = Math.Max(_imageMouseDown.Value.Y, _imageMouseDraggedTo.Y);
             _imageMouseDown = null;
             _suppressRepaint = true;
-            ctList.ClearSelected();
+            if (!Ut.Shift)
+                ctList.ClearSelected();
             foreach (var item in ctList.Items.Cast<ArrowInfo>().ToList())
-                if (item.X - _paintMinX >= minX && item.X - _paintMinX <= maxX && item.Y - _paintMinY >= minY && item.Y - _paintMinY <= maxY)
+                if (item.X - _paintMinX >= minX && item.X - _paintMinX <= maxX && item.Y - _paintMinY >= minY && item.Y - _paintMinY <= maxY && !ctList.SelectedItems.Contains(item))
                     ctList.SelectedItems.Add(item);
             _suppressRepaint = false;
             ctImage.Invalidate();
@@ -656,6 +742,102 @@ namespace ZiimHelper
             if (ZiimHelperProgram.Settings.OutlineIndex >= 0 && ZiimHelperProgram.Settings.OutlineIndex < ctList.Items.Count)
                 ctList.OutlineIndex = ZiimHelperProgram.Settings.OutlineIndex;
             refresh();
+        }
+
+        private sealed class arrowException : Exception
+        {
+            public ArrowInfo Arrow { get; private set; }
+            public arrowException(ArrowInfo arrow, string message) : base(message) { Arrow = arrow; }
+        }
+
+        private void adjustDistances(object _, EventArgs __)
+        {
+            var actions = new List<Action>();
+            var arrowsByName = ctList.Items.Cast<ArrowInfo>().ToDictionary(a => a.Name);
+
+            try
+            {
+                foreach (var arrow in ctList.SelectedItems.Cast<ArrowInfo>())
+                {
+                    if (arrow is SingleArrowInfo)
+                    {
+                        var sai = (SingleArrowInfo) arrow;
+                        if (sai.PointTo != null && arrowsByName.ContainsKey(sai.PointTo))
+                        {
+                            var target = arrowsByName[sai.PointTo];
+                            if (sai.Direction.XOffset() == 0 || sai.Direction.YOffset() == 0 || (target.X - sai.X) / sai.Direction.XOffset() == (target.Y - sai.Y) / sai.Direction.YOffset())
+                                actions.Add(() => { sai.Distance = sai.Direction.XOffset() == 0 ? (target.Y - sai.Y) / sai.Direction.YOffset() : (target.X - sai.X) / sai.Direction.XOffset(); });
+                            else
+                                throw new arrowException(sai, "Arrow “{0}” is not aligned with its direction.".Fmt(arrow.Name));
+                        }
+                    }
+                    else
+                    {
+                        var dai = (DoubleArrowInfo) arrow;
+                        if (dai.PointTo1 != null && arrowsByName.ContainsKey(dai.PointTo1))
+                        {
+                            var target = arrowsByName[dai.PointTo1];
+                            if (dai.Direction.GetDirection1().XOffset() == 0 || dai.Direction.GetDirection1().YOffset() == 0 || (target.X - dai.X) / dai.Direction.GetDirection1().XOffset() == (target.Y - dai.Y) / dai.Direction.GetDirection1().YOffset())
+                                actions.Add(() => { dai.Distance1 = dai.Direction.GetDirection1().XOffset() == 0 ? (target.Y - dai.Y) / dai.Direction.GetDirection1().YOffset() : (target.X - dai.X) / dai.Direction.GetDirection1().XOffset(); });
+                            else
+                                throw new arrowException(dai, "Arrow “{0}” is not aligned with its direction.".Fmt(arrow.Name));
+                        }
+                        if (dai.PointTo2 != null && arrowsByName.ContainsKey(dai.PointTo2))
+                        {
+                            var target = arrowsByName[dai.PointTo2];
+                            if (dai.Direction.GetDirection2().XOffset() == 0 || dai.Direction.GetDirection2().YOffset() == 0 || (target.X - dai.X) / dai.Direction.GetDirection2().XOffset() == (target.Y - dai.Y) / dai.Direction.GetDirection2().YOffset())
+                                actions.Add(() => { dai.Distance2 = dai.Direction.GetDirection2().XOffset() == 0 ? (target.Y - dai.Y) / dai.Direction.GetDirection2().YOffset() : (target.X - dai.X) / dai.Direction.GetDirection2().XOffset(); });
+                            else
+                                throw new arrowException(dai, "Arrow “{0}” is not aligned with its direction.".Fmt(arrow.Name));
+                        }
+                    }
+                }
+            }
+            catch (arrowException e)
+            {
+                var result = DlgMessage.Show(e.Message, "Error", DlgType.Error, "&Go to that arrow", "&Cancel");
+                if (result == 0)
+                {
+                    ctList.SelectedItems.Clear();
+                    ctList.SelectedItems.Add(e.Arrow);
+                }
+                return;
+            }
+
+            foreach (var action in actions)
+                action();
+            refresh();
+        }
+
+        private void setPrefix(object sender, EventArgs e)
+        {
+            ZiimHelperProgram.Settings.NewArrowPrefix = InputBox.GetLine("Type the new prefix", ZiimHelperProgram.Settings.NewArrowPrefix, "Prefix", "&OK", "&Cancel") ?? ZiimHelperProgram.Settings.NewArrowPrefix;
+        }
+
+        private void toggleMark(object sender, EventArgs e)
+        {
+            foreach (var arrow in ctList.SelectedItems.Cast<ArrowInfo>())
+                arrow.Marked = !arrow.Marked;
+            refresh();
+        }
+
+        private void copyToClipboard(object sender, EventArgs e)
+        {
+            if (ctList.Items.Count == 0)
+            {
+                Clipboard.SetText("");
+                return;
+            }
+
+            var minX = ctList.Items.Cast<ArrowInfo>().Min(a => a.X);
+            var minY = ctList.Items.Cast<ArrowInfo>().Min(a => a.Y);
+            var maxX = ctList.Items.Cast<ArrowInfo>().Max(a => a.X);
+            var maxY = ctList.Items.Cast<ArrowInfo>().Max(a => a.Y);
+
+            var arr = Ut.NewArray<char>(maxY - minY + 1, maxX - minX + 1, (i, j) => ' ');
+            foreach (var arrow in ctList.Items.Cast<ArrowInfo>())
+                arr[arrow.Y - minY][arrow.X - minX] = arrow.Arrow;
+            Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
         }
     }
 }

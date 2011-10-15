@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 using RT.Util;
 using RT.Util.Dialogs;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
-using System.Threading;
 
 namespace ZiimHelper
 {
@@ -313,8 +313,6 @@ namespace ZiimHelper
                     if (arr is SingleArrowInfo)
                     {
                         var sai = (SingleArrowInfo) arr;
-                        if (directions != null)
-                            directions.Remove((Direction) (((int) sai.Direction + 4) % 8));
                         if (directions == null || directions.Count == 0)   // { 0 }
                             continue;
                         if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 3) % 8))     // invert
@@ -329,12 +327,11 @@ namespace ZiimHelper
                     else
                     {
                         var dai = (DoubleArrowInfo) arr;
-                        if (directions != null)
-                        {
-                            directions.Remove((Direction) (((int) dai.Direction.GetDirection1() + 4) % 8));
-                            directions.Remove((Direction) (((int) dai.Direction.GetDirection2() + 4) % 8));
-                        }
                         if (directions != null && directions.Count == 1 && (directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8) || directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 6) % 8)))  // splitter
+                            continue;
+                        else if (directions != null && directions.Count == 1 && (directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 1) % 8) || directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 5) % 8)))  // isZero
+                            continue;
+                        else if (directions != null && directions.Count == 1 && (directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 3) % 8) || directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 7) % 8)))  // isEmpty
                             continue;
                     }
                     e.Graphics.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, _paintCellSize, _paintCellSize);
@@ -411,14 +408,15 @@ namespace ZiimHelper
                     var xoff = dir.XOffset();
                     var yoff = dir.YOffset();
                     int x = item.X, y = item.Y;
-                    do
+                    while (true)
                     {
                         x += xoff;
                         y += yoff;
+                        if (x < minX || x > maxX || y < minY || y > maxY)
+                            break;
                         if (taken.ContainsKey(x) && taken[x].ContainsKey(y) && taken[x][y].X == x && taken[x][y].Y == y)
                             item.Warning = msg;
                     }
-                    while (x > minX && x < maxX && y > minY && y < maxY);
                 });
                 foreach (var item in ctList.Items.Cast<ArrowInfo>())
                 {
@@ -452,6 +450,7 @@ namespace ZiimHelper
             cur.Y = y;
             todo.Remove(cur.Name);
             done[cur.Name] = cur;
+            taken.AddSafe(x, y, cur);
 
             Action<int, int, int, ArrowInfo> setWarning = (xOffset, yOffset, distance, item) =>
             {
@@ -821,7 +820,7 @@ namespace ZiimHelper
             refresh();
         }
 
-        private void copyToClipboard(object sender, EventArgs e)
+        private void copySource(object sender, EventArgs e)
         {
             if (ctList.Items.Count == 0)
             {
@@ -838,6 +837,43 @@ namespace ZiimHelper
             foreach (var arrow in ctList.Items.Cast<ArrowInfo>())
                 arr[arrow.Y - minY][arrow.X - minX] = arrow.Arrow;
             Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
+        }
+
+        private void copyImage(object sender, EventArgs e)
+        {
+            if (ctList.Items.Count == 0)
+            {
+                using (var tmpBmp = new Bitmap(1, 1, PixelFormat.Format32bppArgb))
+                    Clipboard.SetImage(tmpBmp);
+                return;
+            }
+
+            var font = new Font(ctImage.Font.FontFamily, 19f);
+            var size = new SizeF();
+            using (var bmpTmp = new Bitmap(1, 1, PixelFormat.Format32bppArgb))
+            using (var g = Graphics.FromImage(bmpTmp))
+            {
+                foreach (var arrow in "↖↑↗→↘↓↙←↕⤢↔⤡")
+                {
+                    var s = g.MeasureString(arrow.ToString(), font);
+                    size = new SizeF(Math.Max(size.Width, s.Width), Math.Max(size.Height, s.Height));
+                }
+            }
+
+            var minX = ctList.Items.Cast<ArrowInfo>().Min(a => a.X);
+            var minY = ctList.Items.Cast<ArrowInfo>().Min(a => a.Y);
+            var maxX = ctList.Items.Cast<ArrowInfo>().Max(a => a.X);
+            var maxY = ctList.Items.Cast<ArrowInfo>().Max(a => a.Y);
+
+            using (var bmpReal = new Bitmap((int) (size.Width * (maxX - minX + 1)), (int) (size.Height * (maxY - minY + 1)), PixelFormat.Format32bppArgb))
+            using (var g = Graphics.FromImage(bmpReal))
+            {
+                g.Clear(Color.White);
+                g.SetHighQuality();
+                foreach (var arrow in ctList.Items.Cast<ArrowInfo>())
+                    g.DrawString(arrow.Arrow.ToString(), font, Brushes.Black, (arrow.X - minX + .5f) * size.Width, (arrow.Y - minY + .5f) * size.Height, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+                Clipboard.SetImage(bmpReal);
+            }
         }
     }
 }

@@ -54,7 +54,6 @@
     <Compile Include="Mainform.Designer.cs">
       <DependentUpon>Mainform.cs</DependentUpon>
     </Compile>
-    <Compile Include="NameGenerator.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="ZiimHelperProgram.cs" />
   </ItemGroup>

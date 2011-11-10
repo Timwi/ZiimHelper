@@ -4,16 +4,20 @@ using RT.Util.Forms;
 
 namespace ZiimHelper
 {
+    enum EditMode
+    {
+        MoveSelect,
+        Draw
+    }
+
     [Settings("ZiimHelper", SettingsKind.UserSpecific)]
     sealed class Settings : SettingsBase
     {
-        public List<ArrowInfo> Arrows = new List<ArrowInfo>();
-        public List<int> SelectedIndices = new List<int>();
-        public int OutlineIndex = 0;
         public bool ViewGrid = true;
         public bool ViewConnectionLines = true;
         public bool ViewInstructions = true;
         public bool ViewAnnotations = true;
+        public EditMode EditMode = EditMode.MoveSelect;
         public ManagedForm.Settings FormSettings = new ManagedForm.Settings();
     }
 }

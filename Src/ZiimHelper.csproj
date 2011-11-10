@@ -55,6 +55,7 @@
       <DependentUpon>Mainform.cs</DependentUpon>
     </Compile>
     <Compile Include="Settings.cs" />
+    <Compile Include="ZiimFile.cs" />
     <Compile Include="ZiimHelperProgram.cs" />
   </ItemGroup>
   <ItemGroup>

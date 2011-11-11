@@ -50,6 +50,8 @@
             this.miNew = new System.Windows.Forms.ToolStripMenuItem();
             this.miOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.miSaveAs = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep4 = new System.Windows.Forms.ToolStripSeparator();
+            this.miImport = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuArrow = new System.Windows.Forms.ToolStripMenuItem();
@@ -60,6 +62,7 @@
             this.miConnectionLines = new System.Windows.Forms.ToolStripMenuItem();
             this.miInstructions = new System.Windows.Forms.ToolStripMenuItem();
             this.miAnnotations = new System.Windows.Forms.ToolStripMenuItem();
+            this.miClouds = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
@@ -81,7 +84,7 @@
                         | System.Windows.Forms.Keys.Up)));
             this.miMoveUp.Size = new System.Drawing.Size(242, 22);
             this.miMoveUp.Text = "Move &up";
-            this.miMoveUp.Click += new System.EventHandler(this.moveArrow);
+            this.miMoveUp.Click += new System.EventHandler(this.move);
             // 
             // miMoveDown
             // 
@@ -90,7 +93,7 @@
                         | System.Windows.Forms.Keys.Down)));
             this.miMoveDown.Size = new System.Drawing.Size(242, 22);
             this.miMoveDown.Text = "Mo&ve down";
-            this.miMoveDown.Click += new System.EventHandler(this.moveArrow);
+            this.miMoveDown.Click += new System.EventHandler(this.move);
             // 
             // miMoveLeft
             // 
@@ -99,7 +102,7 @@
                         | System.Windows.Forms.Keys.Left)));
             this.miMoveLeft.Size = new System.Drawing.Size(242, 22);
             this.miMoveLeft.Text = "Move &left";
-            this.miMoveLeft.Click += new System.EventHandler(this.moveArrow);
+            this.miMoveLeft.Click += new System.EventHandler(this.move);
             // 
             // miMoveRight
             // 
@@ -108,7 +111,7 @@
                         | System.Windows.Forms.Keys.Right)));
             this.miMoveRight.Size = new System.Drawing.Size(242, 22);
             this.miMoveRight.Text = "Move rig&ht";
-            this.miMoveRight.Click += new System.EventHandler(this.moveArrow);
+            this.miMoveRight.Click += new System.EventHandler(this.move);
             // 
             // miRotateClockwise
             // 
@@ -129,7 +132,7 @@
             // miMark
             // 
             this.miMark.Name = "miMark";
-            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
+            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
             this.miMark.Size = new System.Drawing.Size(242, 22);
             this.miMark.Text = "Toggle mar&k";
             this.miMark.Click += new System.EventHandler(this.toggleMark);
@@ -207,9 +210,9 @@
             this.ctImage.TabIndex = 0;
             this.ctImage.PaintBuffer += new System.Windows.Forms.PaintEventHandler(this.paintBuffer);
             this.ctImage.Paint += new System.Windows.Forms.PaintEventHandler(this.paint);
-            this.ctImage.MouseDown += new System.Windows.Forms.MouseEventHandler(this.imageMouseDown);
-            this.ctImage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.imageMouseMove);
-            this.ctImage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.imageMouseUp);
+            this.ctImage.MouseDown += new System.Windows.Forms.MouseEventHandler(this.mouseDown);
+            this.ctImage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.mouseMove);
+            this.ctImage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.mouseUp);
             // 
             // ctMenu
             // 
@@ -232,6 +235,8 @@
             this.miSave,
             this.miSaveAs,
             this.miRevert,
+            this.miSep4,
+            this.miImport,
             this.miSep1,
             this.miCopySource,
             this.miCopyImage,
@@ -265,6 +270,18 @@
             this.miSaveAs.Size = new System.Drawing.Size(307, 22);
             this.miSaveAs.Text = "Save &As...";
             this.miSaveAs.Click += new System.EventHandler(this.saveAs);
+            // 
+            // miSep4
+            // 
+            this.miSep4.Name = "miSep4";
+            this.miSep4.Size = new System.Drawing.Size(304, 6);
+            // 
+            // miImport
+            // 
+            this.miImport.Name = "miImport";
+            this.miImport.Size = new System.Drawing.Size(307, 22);
+            this.miImport.Text = "&Import...";
+            this.miImport.Click += new System.EventHandler(this.import);
             // 
             // miSep3
             // 
@@ -314,7 +331,8 @@
             this.miGrid,
             this.miConnectionLines,
             this.miInstructions,
-            this.miAnnotations});
+            this.miAnnotations,
+            this.miClouds});
             this.mnuView.Name = "mnuView";
             this.mnuView.Size = new System.Drawing.Size(41, 20);
             this.mnuView.Text = "&View";
@@ -332,7 +350,7 @@
             this.miConnectionLines.Name = "miConnectionLines";
             this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
             this.miConnectionLines.Size = new System.Drawing.Size(189, 22);
-            this.miConnectionLines.Text = "&Connection lines";
+            this.miConnectionLines.Text = "Connection &lines";
             this.miConnectionLines.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miInstructions
@@ -346,10 +364,18 @@
             // miAnnotations
             // 
             this.miAnnotations.Name = "miAnnotations";
-            this.miAnnotations.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
+            this.miAnnotations.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
             this.miAnnotations.Size = new System.Drawing.Size(189, 22);
             this.miAnnotations.Text = "&Annotations";
             this.miAnnotations.Click += new System.EventHandler(this.toggleViewOption);
+            // 
+            // miClouds
+            // 
+            this.miClouds.Name = "miClouds";
+            this.miClouds.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
+            this.miClouds.Size = new System.Drawing.Size(189, 22);
+            this.miClouds.Text = "&Clouds";
+            this.miClouds.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // mnuMode
             // 
@@ -371,7 +397,7 @@
             // miDraw
             // 
             this.miDraw.Name = "miDraw";
-            this.miDraw.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
+            this.miDraw.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
             this.miDraw.Size = new System.Drawing.Size(185, 22);
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
@@ -433,6 +459,9 @@
         private System.Windows.Forms.ToolStripMenuItem miSaveAs;
         private System.Windows.Forms.ToolStripSeparator miSep3;
         private System.Windows.Forms.ToolStripMenuItem miExit;
+        private System.Windows.Forms.ToolStripSeparator miSep4;
+        private System.Windows.Forms.ToolStripMenuItem miImport;
+        private System.Windows.Forms.ToolStripMenuItem miClouds;
     }
 }
 

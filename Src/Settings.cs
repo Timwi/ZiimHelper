@@ -17,6 +17,7 @@ namespace ZiimHelper
         public bool ViewConnectionLines = true;
         public bool ViewInstructions = true;
         public bool ViewAnnotations = true;
+        public bool ViewClouds = true;
         public EditMode EditMode = EditMode.MoveSelect;
         public ManagedForm.Settings FormSettings = new ManagedForm.Settings();
     }

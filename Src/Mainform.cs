@@ -17,10 +17,10 @@ namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
-        private ZiimFile _file = new ZiimFile { Items = new List<ArrowInfo>() };
+        private ZiimFile _file = new ZiimFile();
         private string _filename = null;
         private bool _fileChanged = false;
-        private HashSet<ArrowInfo> _selected = new HashSet<ArrowInfo>();
+        private HashSet<Item> _selected = new HashSet<Item>();
 
         private FontFamily _arrowFont = new FontFamily("Cambria");
         private FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
@@ -43,36 +43,31 @@ namespace ZiimHelper
             refresh();
         }
 
-        private bool _suppressRepaint;
-
         private void paint(object _, PaintEventArgs e)
         {
             if (_paintCellSize < 1)
                 return;
             e.Graphics.SetHighQuality();
-            foreach (var arr in _selected.OfType<ArrowInfo>())
-                e.Graphics.DrawEllipse(new Pen(Brushes.Red, 2),
-                    _paintTarget.Left + (arr.X - _paintMinX) * _paintCellSize + _paintCellSize / 10,
-                    _paintTarget.Top + (arr.Y - _paintMinY) * _paintCellSize + _paintCellSize / 10,
-                    _paintCellSize * 8 / 10, _paintCellSize * 8 / 10);
 
-            if (_imageMouseDown != null)
+            using (new GraphicsTransformer(e.Graphics).Translate(_paintTarget.Left - _paintMinX * _paintCellSize, _paintTarget.Top - _paintMinY * _paintCellSize))
+                foreach (var item in _selected)
+                    item.DrawSelected(e.Graphics, _paintCellSize);
+
+            if (_draggingSelectionRectangle)
             {
-                var minX = Math.Min(_imageMouseDown.Value.X, _imageMouseDraggedTo.X) - _paintMinX;
-                var minY = Math.Min(_imageMouseDown.Value.Y, _imageMouseDraggedTo.Y) - _paintMinY;
-                var maxX = Math.Max(_imageMouseDown.Value.X, _imageMouseDraggedTo.X) - _paintMinX;
-                var maxY = Math.Max(_imageMouseDown.Value.Y, _imageMouseDraggedTo.Y) - _paintMinY;
+                var minX = Math.Min(_mouseDown.X, _mouseDraggedTo.X) - _paintMinX;
+                var minY = Math.Min(_mouseDown.Y, _mouseDraggedTo.Y) - _paintMinY;
+                var maxX = Math.Max(_mouseDown.X, _mouseDraggedTo.X) - _paintMinX;
+                var maxY = Math.Max(_mouseDown.Y, _mouseDraggedTo.Y) - _paintMinY;
                 var rect = new Rectangle(_paintTarget.Left + _paintCellSize * minX, _paintTarget.Top + _paintCellSize * minY, _paintCellSize * (maxX - minX + 1), _paintCellSize * (maxY - minY + 1));
                 e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(128, 32, 128, 192)), rect);
                 e.Graphics.DrawRectangle(new Pen(Brushes.Blue, 2), rect);
             }
-            else if (_arrowMoving != null || _arrowReorienting != null)
+            else if (_arrowReorienting != null)
             {
-                var x = (_arrowMoving ?? _arrowReorienting).X;
-                var y = (_arrowMoving ?? _arrowReorienting).Y;
-                var rect = new Rectangle(_paintTarget.Left + _paintCellSize * (x - _paintMinX), _paintTarget.Top + _paintCellSize * (y - _paintMinY), _paintCellSize, _paintCellSize);
-                e.Graphics.FillEllipse(new SolidBrush(Color.FromArgb(32, 128, 32, 192)), rect);
-                e.Graphics.DrawEllipse(new Pen(Brushes.Green, 3), rect);
+                var t = _paintTarget.Location + new Size(-_paintMinX * _paintCellSize, -_paintMinY * _paintCellSize);
+                using (var tr = new GraphicsTransformer(e.Graphics).Translate(t.X, t.Y))
+                    _arrowReorienting.DrawReorienting(e.Graphics, _paintCellSize);
             }
         }
 
@@ -92,10 +87,10 @@ namespace ZiimHelper
             if (_file.Items.Count < 1)
                 return;
 
-            _paintMinX = _file.Items.OfType<ArrowInfo>().Min(a => a.X);
-            _paintMinY = _file.Items.OfType<ArrowInfo>().Min(a => a.Y);
-            _paintMaxX = _file.Items.OfType<ArrowInfo>().Max(a => a.X);
-            _paintMaxY = _file.Items.OfType<ArrowInfo>().Max(a => a.Y);
+            _paintMinX = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.X);
+            _paintMinY = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.Y);
+            _paintMaxX = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.X);
+            _paintMaxY = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.Y);
 
             var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);
@@ -127,9 +122,14 @@ namespace ZiimHelper
                     g.DrawLine(Pens.DarkGray, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
             }
 
+            if (miClouds.Checked)
+                using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * _paintCellSize, -_paintMinY * _paintCellSize))
+                    foreach (var cloud in _file.Items.SelectMany(itm => itm.Clouds))
+                        cloud.DrawCloud(g, _paintCellSize);
+
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
-            foreach (var arr in _file.Items.OfType<ArrowInfo>())
+            foreach (var arr in _file.Items.SelectMany(itm => itm.Arrows))
             {
                 g.DrawString(arr.Arrow.ToString(), new Font(_arrowFont, fontSize), arr.Marked ? Brushes.Red : Brushes.Black, (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
@@ -156,7 +156,7 @@ namespace ZiimHelper
 
             if (miInstructions.Checked)
             {
-                foreach (var arr in _file.Items.OfType<ArrowInfo>())
+                foreach (var arr in _file.Items.SelectMany(itm => itm.Arrows))
                 {
                     var x = (arr.X - _paintMinX) * cellSize;
                     var y = (arr.Y - _paintMinY) * cellSize;
@@ -230,6 +230,13 @@ namespace ZiimHelper
                     }
                 }
             }
+
+            StringFormat sf = null;
+            foreach (var pair in _file.Items.SelectMany(i => i.Arrows).UniquePairs())
+                if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y)
+                    g.DrawString("!!!", new Font(_arrowFont, fontSize, FontStyle.Italic), Brushes.Red,
+                        cellSize * (pair.Item1.X - _paintMinX) + cellSize / 2, cellSize * (pair.Item1.Y - _paintMinY) + cellSize / 2,
+                        sf ?? (sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }));
         }
 
         private ArrowInfo getPointTo(int x, int y, int xOffset, int yOffset)
@@ -238,7 +245,7 @@ namespace ZiimHelper
             {
                 x += xOffset;
                 y += yOffset;
-                var found = _file.Items.OfType<ArrowInfo>().FirstOrDefault(arrow => arrow.X == x && arrow.Y == y);
+                var found = _file.Items.SelectMany(itm => itm.Arrows).FirstOrDefault(arrow => arrow.X == x && arrow.Y == y);
                 if (found != null)
                     return found;
             }
@@ -261,7 +268,7 @@ namespace ZiimHelper
         {
             if (_selected.Count == 0)
                 return;
-            foreach (var arrow in _selected.OfType<ArrowInfo>())
+            foreach (var arrow in _selected.SelectMany(itm => itm.Arrows))
                 arrow.Rotate(sender == miRotateClockwise);
             refresh();
         }
@@ -324,58 +331,62 @@ namespace ZiimHelper
             }
         }
 
-        private void moveArrow(object sender, EventArgs __)
+        private void move(object sender, EventArgs __)
         {
             var xOffset = sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0;
             var yOffset = sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0;
+            var squaresTaken = new Dictionary<int, HashSet<int>>();
+            foreach (var arrow in _file.Items.SelectMany(item => item.Arrows))
+                squaresTaken.AddSafe(arrow.X, arrow.Y);
+
+            bool anyTaken;
             do
             {
-                foreach (var item in _selected.OfType<ArrowInfo>())
+                anyTaken = false;
+                foreach (var arrow in _selected.SelectMany(item => item.Arrows))
                 {
-                    item.X += xOffset;
-                    item.Y += yOffset;
+                    arrow.X += xOffset;
+                    arrow.Y += yOffset;
+                    if (squaresTaken.Contains(arrow.X, arrow.Y))
+                        anyTaken = true;
                 }
             }
-            while (_file.Items.OfType<ArrowInfo>().Except(_selected).SelectMany(arrow => _selected.Select(sel => new { sel, arrow })).Any(tup => tup.sel.X == tup.arrow.X && tup.sel.Y == tup.arrow.Y));
+            while (anyTaken);
             refresh();
         }
 
-        private void selectedIndexChanged(object _, EventArgs __)
-        {
-            if (!_suppressRepaint)
-                ctImage.Invalidate();
-        }
-
-        private Point? _imageMouseDown;
-        private Point _imageMouseDraggedTo;
-        private ArrowInfo _arrowMoving;
+        private bool _draggingSelectionRectangle;
+        private Point _mouseDown;
+        private Point _mouseDraggedTo;
+        private Item _mouseMoving;
         private ArrowInfo _arrowReorienting;
 
-        private void imageMouseDown(object sender, MouseEventArgs e)
+        private void mouseDown(object sender, MouseEventArgs e)
         {
             var x = _paintCellSize == 0 ? 0 : divRoundDown(e.X - _paintTarget.Left, _paintCellSize) + _paintMinX;
             var y = _paintCellSize == 0 ? 0 : divRoundDown(e.Y - _paintTarget.Top, _paintCellSize) + _paintMinY;
-            _imageMouseDraggedTo = new Point(x, y);
+            _mouseDown = _mouseDraggedTo = new Point(x, y);
 
-            ArrowInfo clickedOn = _file.Items.OfType<ArrowInfo>().FirstOrDefault(item => item.X == x && item.Y == y);
+            var clickedOn = _file.Items.FirstOrDefault(item => item.Arrows.Any(arr => arr.X == x && arr.Y == y));
+
             if (miMoveSelect.Checked && clickedOn != null && !Ut.Ctrl)
             {
                 if (!_selected.Contains(clickedOn) && !Ut.Shift)
                     _selected.Clear();
                 _selected.Add(clickedOn);
-                _arrowMoving = clickedOn;
+                _mouseMoving = clickedOn;
                 ctImage.Invalidate();
             }
             else if (miMoveSelect.Checked)
             {
-                _imageMouseDown = new Point(x, y);
+                _draggingSelectionRectangle = true;
                 ctImage.Invalidate();
             }
             else if (miDraw.Checked)
             {
-                if (clickedOn != null)
+                if (clickedOn is ArrowInfo)
                 {
-                    _arrowReorienting = clickedOn;
+                    _arrowReorienting = (ArrowInfo) clickedOn;
                     _selected.Clear();
                     _selected.Add(clickedOn);
                     ctImage.Invalidate();
@@ -402,79 +413,61 @@ namespace ZiimHelper
                 : dividend / divisor - 1;
         }
 
-        private void imageMouseMove(object sender, MouseEventArgs e)
+        private void mouseMove(object sender, MouseEventArgs e)
         {
             var x = _paintCellSize == 0 ? 0 : divRoundDown(e.X - _paintTarget.Left, _paintCellSize) + _paintMinX;
             var y = _paintCellSize == 0 ? 0 : divRoundDown(e.Y - _paintTarget.Top, _paintCellSize) + _paintMinY;
-            if (x == _imageMouseDraggedTo.X && y == _imageMouseDraggedTo.Y)
+            if (x == _mouseDraggedTo.X && y == _mouseDraggedTo.Y)
                 return;
-            _imageMouseDraggedTo = new Point(x, y);
+            var deltaX = x - _mouseDraggedTo.X;
+            var deltaY = y - _mouseDraggedTo.Y;
+            _mouseDraggedTo = new Point(x, y);
 
             if (miMoveSelect.Checked)
-                ctImage.Cursor = _arrowMoving != null || (!Ut.Ctrl && _file.Items.OfType<ArrowInfo>().Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
+                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && _file.Items.SelectMany(itm => itm.Arrows).Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
 
-            if (_imageMouseDown != null)
+            if (_draggingSelectionRectangle)
                 ctImage.Invalidate();
-            else if (_arrowMoving != null)
+            else if (_mouseMoving != null)
             {
-                var xDist = x - _arrowMoving.X;
-                var yDist = y - _arrowMoving.Y;
-                foreach (var arrow in _selected.OfType<ArrowInfo>())
-                {
-                    arrow.X += xDist;
-                    arrow.Y += yDist;
-                }
+                foreach (var item in _selected)
+                    item.Move(deltaX, deltaY);
                 refresh();
                 _fileChanged = true;
             }
             else if (_arrowReorienting != null)
             {
-                var a = 2 * (y - _arrowReorienting.Y) > x - _arrowReorienting.X;      //~\_
-                var b = y - _arrowReorienting.Y > 2 * (x - _arrowReorienting.X);     // \
-                var c = y - _arrowReorienting.Y > 2 * (_arrowReorienting.X - x);     // /
-                var d = 2 * (y - _arrowReorienting.Y) > _arrowReorienting.X - x;    // _/~
-                if (_arrowReorienting is SingleArrowInfo)
-                    ((SingleArrowInfo) _arrowReorienting).Direction =
-                        b && c ? Direction.Down :
-                        !c && d ? Direction.DownLeft :
-                        !d && a ? Direction.Left :
-                        !a && b ? Direction.UpLeft :
-                        !b && !c ? Direction.Up :
-                        c && !d ? Direction.UpRight :
-                        d && !a ? Direction.Right :
-                        a && !b ? Direction.DownRight : Ut.Throw<Direction>(new InvalidOperationException());
-                else if (_arrowReorienting is DoubleArrowInfo)
-                    ((DoubleArrowInfo) _arrowReorienting).Direction =
-                        b == c ? DoubleDirection.UpDown :
-                        c != d ? DoubleDirection.UpRightDownLeft :
-                        d != a ? DoubleDirection.RightLeft :
-                        a != b ? DoubleDirection.DownRightUpLeft : Ut.Throw<DoubleDirection>(new InvalidOperationException());
+                _arrowReorienting.Reorient(
+                    2 * (y - _arrowReorienting.Y) > x - _arrowReorienting.X,      //~\_
+                    y - _arrowReorienting.Y > 2 * (x - _arrowReorienting.X),     // \
+                    y - _arrowReorienting.Y > 2 * (_arrowReorienting.X - x),     // /
+                    2 * (y - _arrowReorienting.Y) > _arrowReorienting.X - x     // _/~
+                );
                 refresh();
                 _fileChanged = true;
             }
         }
 
-        private void imageMouseUp(object sender, MouseEventArgs e)
+        private void mouseUp(object sender, MouseEventArgs e)
         {
-            if (_imageMouseDown != null)
+            if (_draggingSelectionRectangle)
             {
-                var minX = Math.Min(_imageMouseDown.Value.X, _imageMouseDraggedTo.X);
-                var minY = Math.Min(_imageMouseDown.Value.Y, _imageMouseDraggedTo.Y);
-                var maxX = Math.Max(_imageMouseDown.Value.X, _imageMouseDraggedTo.X);
-                var maxY = Math.Max(_imageMouseDown.Value.Y, _imageMouseDraggedTo.Y);
-                _imageMouseDown = null;
-                _suppressRepaint = true;
                 if (!Ut.Shift)
                     _selected.Clear();
-                foreach (var item in _file.Items.OfType<ArrowInfo>().ToList())
-                    if (item.X >= minX && item.X <= maxX && item.Y >= minY && item.Y <= maxY && !_selected.Contains(item))
-                        _selected.Add(item);
-                _suppressRepaint = false;
+
+                foreach (var item in _file.Items.Where(item => item.IsContainedIn(
+                    Math.Min(_mouseDown.X, _mouseDraggedTo.X),
+                    Math.Min(_mouseDown.Y, _mouseDraggedTo.Y),
+                    Math.Max(_mouseDown.X, _mouseDraggedTo.X),
+                    Math.Max(_mouseDown.Y, _mouseDraggedTo.Y))))
+                    _selected.Add(item);
+
+                _draggingSelectionRectangle = false;
                 ctImage.Invalidate();
             }
-            else if (_arrowMoving != null || _arrowReorienting != null)
+            else if (_mouseMoving != null || _arrowReorienting != null)
             {
-                _arrowMoving = null;
+                _mouseMoving = null;
                 _arrowReorienting = null;
                 ctImage.Invalidate();
             }
@@ -496,6 +489,7 @@ namespace ZiimHelper
             miConnectionLines.Checked = ZiimHelperProgram.Settings.ViewConnectionLines;
             miInstructions.Checked = ZiimHelperProgram.Settings.ViewInstructions;
             miAnnotations.Checked = ZiimHelperProgram.Settings.ViewAnnotations;
+            miClouds.Checked = ZiimHelperProgram.Settings.ViewClouds;
 
             (ZiimHelperProgram.Settings.EditMode == EditMode.MoveSelect ? miMoveSelect :
                 ZiimHelperProgram.Settings.EditMode == EditMode.Draw ? miDraw : Ut.Throw<ToolStripMenuItem>(new InvalidOperationException())).Checked = true;
@@ -511,7 +505,7 @@ namespace ZiimHelper
 
         private void toggleMark(object sender, EventArgs e)
         {
-            foreach (var arrow in _selected.OfType<ArrowInfo>())
+            foreach (var arrow in _selected.SelectMany(itm => itm.Arrows))
                 arrow.Marked = !arrow.Marked;
             _fileChanged = true;
             refresh();
@@ -525,13 +519,13 @@ namespace ZiimHelper
                 return;
             }
 
-            var minX = _file.Items.OfType<ArrowInfo>().Min(a => a.X);
-            var minY = _file.Items.OfType<ArrowInfo>().Min(a => a.Y);
-            var maxX = _file.Items.OfType<ArrowInfo>().Max(a => a.X);
-            var maxY = _file.Items.OfType<ArrowInfo>().Max(a => a.Y);
+            var minX = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.X);
+            var minY = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.Y);
+            var maxX = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.X);
+            var maxY = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.Y);
 
             var arr = Ut.NewArray<char>(maxY - minY + 1, maxX - minX + 1, (i, j) => ' ');
-            foreach (var arrow in _file.Items.OfType<ArrowInfo>())
+            foreach (var arrow in _file.Items.SelectMany(itm => itm.Arrows))
                 arr[arrow.Y - minY][arrow.X - minX] = arrow.Arrow;
             Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
         }
@@ -612,11 +606,11 @@ namespace ZiimHelper
 
         private void annotate(object sender, EventArgs e)
         {
-            var annotation = _selected.OfType<ArrowInfo>().Select(arr => arr.Annotation).JoinString();
+            var annotation = _selected.SelectMany(itm => itm.Arrows).Select(arr => arr.Annotation).JoinString();
             var newAnnotation = InputBox.GetLine("Annotation:", annotation, "Annotation", "&OK", "&Cancel");
             if (newAnnotation != null)
             {
-                foreach (var arr in _selected.OfType<ArrowInfo>())
+                foreach (var arr in _selected.SelectMany(itm => itm.Arrows))
                     arr.Annotation = newAnnotation;
                 refresh();
             }
@@ -654,7 +648,7 @@ namespace ZiimHelper
                     var mousePosition = ctImage.PointToClient(Control.MousePosition);
                     var x = _paintCellSize == 0 ? 0 : (mousePosition.X - _paintTarget.Left) / _paintCellSize + _paintMinX;
                     var y = _paintCellSize == 0 ? 0 : (mousePosition.Y - _paintTarget.Top) / _paintCellSize + _paintMinY;
-                    ctImage.Cursor = _file.Items.OfType<ArrowInfo>().Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
+                    ctImage.Cursor = _file.Items.SelectMany(itm => itm.Arrows).Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
                 }
             }
             else if (miDraw.Checked)
@@ -673,7 +667,7 @@ namespace ZiimHelper
             if (!canDestroy())
                 return;
             _filename = null;
-            _file = new ZiimFile { Items = new List<ArrowInfo>() };
+            _file = new ZiimFile();
             _selected.Clear();
             _fileChanged = false;
             refresh();
@@ -736,6 +730,7 @@ namespace ZiimHelper
             ZiimHelperProgram.Settings.ViewConnectionLines = miConnectionLines.Checked;
             ZiimHelperProgram.Settings.ViewInstructions = miInstructions.Checked;
             ZiimHelperProgram.Settings.ViewAnnotations = miAnnotations.Checked;
+            ZiimHelperProgram.Settings.ViewClouds = miClouds.Checked;
             ZiimHelperProgram.Settings.EditMode = miDraw.Checked ? EditMode.Draw : EditMode.MoveSelect;
 
             if (!canDestroy())
@@ -760,6 +755,74 @@ namespace ZiimHelper
         private void keyUp(object sender, KeyEventArgs e)
         {
             setCursor();
+        }
+
+        private void import(object _, EventArgs __)
+        {
+            using (var dlg = new OpenFileDialog
+            {
+                CheckFileExists = true,
+                CheckPathExists = true,
+                DefaultExt = "ziim",
+                Multiselect = false,
+                Title = "Import Ziim sub-program",
+                Filter = "Ziim programs|*.ziim"
+            })
+            {
+                if (dlg.ShowDialog() == DialogResult.Cancel)
+                    return;
+                ZiimFile file;
+                try
+                {
+                    file = XmlClassify.LoadObjectFromXmlFile<ZiimFile>(dlg.FileName);
+                }
+                catch (Exception e)
+                {
+                    DlgMessage.Show("The file could not be opened:\n\n" + e.Message, "Error", DlgType.Error);
+                    return;
+                }
+                var cloud = new Cloud { Items = file.Items };
+                _file.Items.Add(cloud);
+                _selected.Add(cloud);
+                jiggle(cloud);
+                _fileChanged = true;
+                refresh();
+            }
+        }
+
+        private void jiggle(Item item)
+        {
+            var squaresTaken = new Dictionary<int, HashSet<int>>();
+            foreach (var arrow in _file.Items.Except(new[] { item }).SelectMany(itm => itm.Arrows))
+                squaresTaken.AddSafe(arrow.X, arrow.Y);
+            int radius = 0, px = 0, py = 0;
+            while (item.Arrows.Any(arr => squaresTaken.Contains(arr.X, arr.Y)))
+            {
+                int x = px, y = px;
+                if (x == radius)
+                {
+                    if (y == radius)
+                    {
+                        radius++;
+                        x = -radius;
+                        y = -radius;
+                    }
+                    else
+                    {
+                        x = 0;
+                        y++;
+                    }
+                }
+                else
+                    x++;
+                foreach (var arr in item.Arrows)
+                {
+                    arr.X += x - px;
+                    arr.Y += y - py;
+                }
+                px = x;
+                py = y;
+            }
         }
     }
 }

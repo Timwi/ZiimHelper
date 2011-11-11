@@ -11,6 +11,6 @@ namespace ZiimHelper
     [XmlIgnoreIfDefault]
     sealed class ZiimFile
     {
-        public List<ArrowInfo> Items = new List<ArrowInfo>();
+        public List<Item> Items = new List<Item>();
     }
 }

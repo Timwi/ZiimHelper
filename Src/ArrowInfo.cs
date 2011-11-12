@@ -21,9 +21,21 @@ namespace ZiimHelper
 
     sealed class Cloud : Item
     {
+        public Cloud() { }
+        public Cloud(IEnumerable<Item> items) { Items.AddRange(items); }
+
         public List<Item> Items = new List<Item>();
+        public Color Color = Color.FromArgb(64, 64, 192, 255);
         public override IEnumerable<ArrowInfo> Arrows { get { return Items.SelectMany(item => item.Arrows); } }
         public override IEnumerable<Cloud> Clouds { get { return this.Concat(Items.SelectMany(i => i.Clouds)); } }
+        public IEnumerable<Tuple<ArrowInfo, Cloud>> ArrowsWithParents
+        {
+            get
+            {
+                return Items.OfType<ArrowInfo>().Select(arrow => Tuple.Create(arrow, this)).Concat(
+                             Items.OfType<Cloud>().SelectMany(cloud => cloud.ArrowsWithParents));
+            }
+        }
         public override void Move(int deltaX, int deltaY)
         {
             foreach (var item in Items)
@@ -35,19 +47,23 @@ namespace ZiimHelper
         }
         public override void DrawSelected(Graphics g, int cellSize)
         {
-            drawCloud(g, cellSize, outline: new Pen(Brushes.Red, 2), margin: cellSize / 10);
+            drawCloud(g, cellSize, outline: new Pen(Brushes.Blue, 2), margin: cellSize / 10);
         }
         public void DrawCloud(Graphics g, int cellSize)
         {
-            drawCloud(g, cellSize, fill: new SolidBrush(Color.FromArgb(64, 64, 192, 255)), margin: cellSize / 10);
+            drawCloud(g, cellSize, fill: new SolidBrush(Color.FromArgb(64, Color)), margin: cellSize / 10);
         }
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, Brush fill = null, int margin = 0)
         {
-            var minX = Arrows.Min(a => a.X); var maxX = Arrows.Max(a => a.X);
-            var minY = Arrows.Min(a => a.Y); var maxY = Arrows.Max(a => a.Y);
+            var noInputArrows = Arrows.Where(a => !a.IsInput);
+            var minX = noInputArrows.Min(a => a.X);
+            var maxX = noInputArrows.Max(a => a.X);
+            var minY = noInputArrows.Min(a => a.Y);
+            var maxY = noInputArrows.Max(a => a.Y);
             var taken = Ut.NewArray<bool>(maxX - minX + 1, maxY - minY + 1);
-            foreach (var arr in Arrows)
+            foreach (var arr in noInputArrows)
+            {
                 foreach (var dir in arr.Directions)
                 {
                     int x = arr.X, y = arr.Y;
@@ -57,8 +73,9 @@ namespace ZiimHelper
                         x += dir.XOffset();
                         y += dir.YOffset();
                     }
-                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !Arrows.Any(a => a.X == x && a.Y == y));
+                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !Arrows.Any(a => a.X == x && a.Y == y && !a.IsInput));
                 }
+            }
 
             var path = Util.CloudPath(new Virtual2DArrayImpl((x, y) => x < 0 || x > maxX - minX || y < 0 || y > maxY - minY ? false : taken[x][y]) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, margin);
 
@@ -86,13 +103,15 @@ namespace ZiimHelper
         public bool Marked { get; set; }
         [XmlIgnoreIfDefault]
         public string Annotation { get; set; }
-        public override string ToString() { return CoordsString + (Annotation == null ? "" : " " + Annotation) + (Marked ? " [M] " : " ") + Arrow; }
         public string CoordsString { get { return "(" + X + ", " + Y + ")"; } }
-        public abstract char Arrow { get; }
-        public abstract void Rotate(bool clockwise);
+        public abstract char Character { get; }
+        public virtual bool IsInput { get { return false; } }
         public abstract IEnumerable<Direction> Directions { get; }
         public override IEnumerable<ArrowInfo> Arrows { get { return new[] { this }; } }
         public override IEnumerable<Cloud> Clouds { get { return Enumerable.Empty<Cloud>(); } }
+
+        public override string ToString() { return CoordsString + (Annotation == null ? "" : " " + Annotation) + (Marked ? " [M] " : " ") + Character; }
+        public abstract void Rotate(bool clockwise);
         public override void Move(int deltaX, int deltaY) { X += deltaX; Y += deltaY; }
         public abstract void Reorient(bool a, bool b, bool c, bool d);
         public override void DrawReorienting(Graphics g, int cellSize)
@@ -103,7 +122,7 @@ namespace ZiimHelper
         }
         public override void DrawSelected(Graphics g, int cellSize)
         {
-            g.DrawEllipse(new Pen(Brushes.Red, 2), X * cellSize + cellSize / 10, Y * cellSize + cellSize / 10, cellSize * 8 / 10, cellSize * 8 / 10);
+            g.DrawEllipse(new Pen(Brushes.Blue, 2), X * cellSize + cellSize / 10, Y * cellSize + cellSize / 10, cellSize * 8 / 10, cellSize * 8 / 10);
         }
 
         public override bool IsContainedIn(int minX, int minY, int maxX, int maxY)
@@ -112,12 +131,14 @@ namespace ZiimHelper
         }
     }
 
-    sealed class SingleArrowInfo : ArrowInfo
+    class SingleArrowInfo : ArrowInfo
     {
         public Direction Direction { get; set; }
-        public override char Arrow { get { return Direction.ToChar(); } }
+        public bool IsInputArrow { get; set; }
+        public override char Character { get { return IsInput ? Direction.ToCharDouble() : Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (Direction) (((int) Direction + (clockwise ? 1 : 7)) % 8); }
         public override IEnumerable<Direction> Directions { get { return new[] { Direction }; } }
+        public override bool IsInput { get { return IsInputArrow; } }
         public override void Reorient(bool a, bool b, bool c, bool d)
         {
             Direction =
@@ -135,7 +156,7 @@ namespace ZiimHelper
     sealed class DoubleArrowInfo : ArrowInfo
     {
         public DoubleDirection Direction { get; set; }
-        public override char Arrow { get { return Direction.ToChar(); } }
+        public override char Character { get { return Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (DoubleDirection) (((int) Direction + (clockwise ? 1 : 3)) % 4); }
         public override IEnumerable<Direction> Directions { get { return new[] { Direction.GetDirection1(), Direction.GetDirection2() }; } }
         public override void Reorient(bool a, bool b, bool c, bool d)

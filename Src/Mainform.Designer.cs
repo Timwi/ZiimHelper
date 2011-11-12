@@ -55,17 +55,22 @@
             this.miSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuArrow = new System.Windows.Forms.ToolStripMenuItem();
+            this.miToggleInput = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep2 = new System.Windows.Forms.ToolStripSeparator();
             this.miAnnotate = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuCloud = new System.Windows.Forms.ToolStripMenuItem();
+            this.miColor = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuView = new System.Windows.Forms.ToolStripMenuItem();
             this.miGrid = new System.Windows.Forms.ToolStripMenuItem();
             this.miConnectionLines = new System.Windows.Forms.ToolStripMenuItem();
             this.miInstructions = new System.Windows.Forms.ToolStripMenuItem();
             this.miAnnotations = new System.Windows.Forms.ToolStripMenuItem();
-            this.miClouds = new System.Windows.Forms.ToolStripMenuItem();
+            this.miOwnCloud = new System.Windows.Forms.ToolStripMenuItem();
+            this.miInnerClouds = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
+            this.miCoordinates = new System.Windows.Forms.ToolStripMenuItem();
             this.ctMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -219,6 +224,7 @@
             this.ctMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuProgram,
             this.mnuArrow,
+            this.mnuCloud,
             this.mnuView,
             this.mnuMode});
             this.ctMenu.Location = new System.Drawing.Point(0, 0);
@@ -305,12 +311,21 @@
             this.miRotateClockwise,
             this.miRotateCounterclockwise,
             this.miDeleteArrow,
+            this.miToggleInput,
             this.miSep2,
             this.miMark,
             this.miAnnotate});
             this.mnuArrow.Name = "mnuArrow";
             this.mnuArrow.Size = new System.Drawing.Size(48, 20);
             this.mnuArrow.Text = "&Arrow";
+            // 
+            // miToggleInput
+            // 
+            this.miToggleInput.Name = "miToggleInput";
+            this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.miToggleInput.Size = new System.Drawing.Size(242, 22);
+            this.miToggleInput.Text = "Toggle &input";
+            this.miToggleInput.Click += new System.EventHandler(this.toggleInput);
             // 
             // miSep2
             // 
@@ -325,6 +340,21 @@
             this.miAnnotate.Text = "A&nnotate...";
             this.miAnnotate.Click += new System.EventHandler(this.annotate);
             // 
+            // mnuCloud
+            // 
+            this.mnuCloud.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.miColor});
+            this.mnuCloud.Name = "mnuCloud";
+            this.mnuCloud.Size = new System.Drawing.Size(46, 20);
+            this.mnuCloud.Text = "&Cloud";
+            // 
+            // miColor
+            // 
+            this.miColor.Name = "miColor";
+            this.miColor.Size = new System.Drawing.Size(152, 22);
+            this.miColor.Text = "&Color...";
+            this.miColor.Click += new System.EventHandler(this.cloudColor);
+            // 
             // mnuView
             // 
             this.mnuView.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -332,7 +362,9 @@
             this.miConnectionLines,
             this.miInstructions,
             this.miAnnotations,
-            this.miClouds});
+            this.miOwnCloud,
+            this.miInnerClouds,
+            this.miCoordinates});
             this.mnuView.Name = "mnuView";
             this.mnuView.Size = new System.Drawing.Size(41, 20);
             this.mnuView.Text = "&View";
@@ -356,9 +388,9 @@
             // miInstructions
             // 
             this.miInstructions.Name = "miInstructions";
-            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
             this.miInstructions.Size = new System.Drawing.Size(189, 22);
-            this.miInstructions.Text = "&Instructions";
+            this.miInstructions.Text = "Ins&tructions";
             this.miInstructions.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miAnnotations
@@ -369,13 +401,21 @@
             this.miAnnotations.Text = "&Annotations";
             this.miAnnotations.Click += new System.EventHandler(this.toggleViewOption);
             // 
-            // miClouds
+            // miOwnCloud
             // 
-            this.miClouds.Name = "miClouds";
-            this.miClouds.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
-            this.miClouds.Size = new System.Drawing.Size(189, 22);
-            this.miClouds.Text = "&Clouds";
-            this.miClouds.Click += new System.EventHandler(this.toggleViewOption);
+            this.miOwnCloud.Name = "miOwnCloud";
+            this.miOwnCloud.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
+            this.miOwnCloud.Size = new System.Drawing.Size(189, 22);
+            this.miOwnCloud.Text = "O&wn cloud";
+            this.miOwnCloud.Click += new System.EventHandler(this.toggleViewOption);
+            // 
+            // miInnerClouds
+            // 
+            this.miInnerClouds.Name = "miInnerClouds";
+            this.miInnerClouds.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
+            this.miInnerClouds.Size = new System.Drawing.Size(189, 22);
+            this.miInnerClouds.Text = "Inner clou&ds";
+            this.miInnerClouds.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // mnuMode
             // 
@@ -401,6 +441,13 @@
             this.miDraw.Size = new System.Drawing.Size(185, 22);
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
+            // 
+            // miCoordinates
+            // 
+            this.miCoordinates.Name = "miCoordinates";
+            this.miCoordinates.Size = new System.Drawing.Size(189, 22);
+            this.miCoordinates.Text = "&Coordinates";
+            this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // Mainform
             // 
@@ -461,7 +508,12 @@
         private System.Windows.Forms.ToolStripMenuItem miExit;
         private System.Windows.Forms.ToolStripSeparator miSep4;
         private System.Windows.Forms.ToolStripMenuItem miImport;
-        private System.Windows.Forms.ToolStripMenuItem miClouds;
+        private System.Windows.Forms.ToolStripMenuItem miInnerClouds;
+        private System.Windows.Forms.ToolStripMenuItem miToggleInput;
+        private System.Windows.Forms.ToolStripMenuItem miOwnCloud;
+        private System.Windows.Forms.ToolStripMenuItem mnuCloud;
+        private System.Windows.Forms.ToolStripMenuItem miColor;
+        private System.Windows.Forms.ToolStripMenuItem miCoordinates;
     }
 }
 

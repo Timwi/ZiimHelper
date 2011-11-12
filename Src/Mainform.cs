@@ -12,19 +12,20 @@ using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
 using RT.Util.Xml;
+using System.IO;
 
 namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
-        private ZiimFile _file = new ZiimFile();
+        private Cloud _file = new Cloud();
         private string _filename = null;
         private bool _fileChanged = false;
         private HashSet<Item> _selected = new HashSet<Item>();
 
         private FontFamily _arrowFont = new FontFamily("Cambria");
         private FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
-        private FontFamily _warningFont = new FontFamily("Calibri");
+        private FontFamily _annotationFont = new FontFamily("Calibri");
 
         public Mainform()
             : base(ZiimHelperProgram.Settings.FormSettings)
@@ -87,10 +88,10 @@ namespace ZiimHelper
             if (_file.Items.Count < 1)
                 return;
 
-            _paintMinX = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.X);
-            _paintMinY = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.Y);
-            _paintMaxX = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.X);
-            _paintMaxY = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.Y);
+            _paintMinX = _file.Arrows.Min(a => a.X);
+            _paintMinY = _file.Arrows.Min(a => a.Y);
+            _paintMaxX = _file.Arrows.Max(a => a.X);
+            _paintMaxY = _file.Arrows.Max(a => a.Y);
 
             var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);
@@ -102,11 +103,8 @@ namespace ZiimHelper
 
             e.Graphics.FillRectangle(Brushes.White, _paintTarget);
             e.Graphics.DrawRectangle(Pens.Black, _paintTarget);
-            var m = new Matrix();
-            m.Translate(_paintTarget.Left, _paintTarget.Top);
-            e.Graphics.Transform = m;
-            paintInto(e.Graphics, _paintCellSize, _paintFontSize);
-            e.Graphics.ResetTransform();
+            using (var tr = new GraphicsTransformer(e.Graphics).Translate(_paintTarget.Left, _paintTarget.Top))
+                paintInto(e.Graphics, _paintCellSize, _paintFontSize);
         }
 
         private void paintInto(Graphics g, int cellSize, float fontSize)
@@ -122,59 +120,74 @@ namespace ZiimHelper
                     g.DrawLine(Pens.DarkGray, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
             }
 
-            if (miClouds.Checked)
-                using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * _paintCellSize, -_paintMinY * _paintCellSize))
-                    foreach (var cloud in _file.Items.SelectMany(itm => itm.Clouds))
-                        cloud.DrawCloud(g, _paintCellSize);
+            if (miInnerClouds.Checked || miOwnCloud.Checked)
+                using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * cellSize, -_paintMinY * cellSize))
+                    foreach (var cloud in miInnerClouds.Checked ? _file.Clouds : new[] { _file })
+                        if (cloud != _file || miOwnCloud.Checked)
+                            cloud.DrawCloud(g, cellSize);
 
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
-            foreach (var arr in _file.Items.SelectMany(itm => itm.Arrows))
+            foreach (var inf in _file.ArrowsWithParents)
             {
-                g.DrawString(arr.Arrow.ToString(), new Font(_arrowFont, fontSize), arr.Marked ? Brushes.Red : Brushes.Black, (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
-                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+                var arr = inf.Item1;
+                var parentCloud = inf.Item2;
+                g.DrawString(
+                    arr.Character.ToString(),
+                    new Font(_arrowFont, fontSize),
+                    arr.IsInput ? new SolidBrush(parentCloud.Color) : arr.Marked ? Brushes.Red : Brushes.Black,
+                    (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
+                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                );
 
-                if (miAnnotations.Checked && arr.Annotation != null)
+                if (miCoordinates.Checked)
+                    g.DrawString(arr.CoordsString, new Font(_annotationFont, fontSize / 4), Brushes.Black, (arr.X - _paintMinX) * cellSize, (arr.Y - _paintMinY) * cellSize);
+
+                if (miAnnotations.Checked && arr.Annotation != null && !arr.IsInput)
                     drawInRoundedRectangle(g, arr.Annotation, new PointF((arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
 
-                foreach (var dir in arr.Directions)
+                if (!arr.IsInput || parentCloud == _file)
                 {
-                    var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
-                    if (miConnectionLines.Checked)
+                    foreach (var dir in arr.Directions)
                     {
-                        var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
-                        var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
-                        while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1) { toX -= dir.XOffset(); toY -= dir.YOffset(); }
-                        g.DrawLine(new Pen(Color.LightGreen) { EndCap = LineCap.ArrowAnchor },
-                            cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize / 2, cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize / 2,
-                            cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10, cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                        var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
+                        if (miConnectionLines.Checked)
+                        {
+                            var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
+                            var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
+                            while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1) { toX -= dir.XOffset(); toY -= dir.YOffset(); }
+                            g.DrawLine(new Pen(Color.LightGreen) { EndCap = LineCap.ArrowAnchor },
+                                cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize / 2, cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize / 2,
+                                cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10, cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                        }
+                        if (miInstructions.Checked && pointTo != null)
+                            hitFromDic.AddSafe(pointTo, dir);
                     }
-                    if (miInstructions.Checked && pointTo != null)
-                        hitFromDic.AddSafe(pointTo, dir);
                 }
             }
 
-            if (miInstructions.Checked)
+            foreach (var inf in _file.ArrowsWithParents)
             {
-                foreach (var arr in _file.Items.SelectMany(itm => itm.Arrows))
+                var arr = inf.Item1;
+                var parentCloud = inf.Item2;
+                var x = (arr.X - _paintMinX) * cellSize;
+                var y = (arr.Y - _paintMinY) * cellSize;
+
+                if (miInstructions.Checked || arr.IsInput)
                 {
-                    var x = (arr.X - _paintMinX) * cellSize;
-                    var y = (arr.Y - _paintMinY) * cellSize;
-
-                    var directions = hitFromDic.ContainsKey(arr) ? hitFromDic[arr] : null;
-
-                    if (miInstructions.Checked)
+                    var directions = !arr.IsInput && hitFromDic.ContainsKey(arr) ? hitFromDic[arr] : null;
+                    string instruction = null;
+                    Direction dir = 0;
+                    if (arr is SingleArrowInfo)
                     {
-                        string instruction = null;
-                        Direction dir = 0;
-                        if (arr is SingleArrowInfo)
+                        var sai = (SingleArrowInfo) arr;
+                        dir = sai.Direction;
+                        if (!sai.IsInput)
                         {
-                            var sai = (SingleArrowInfo) arr;
-                            dir = sai.Direction;
                             if (directions == null || directions.Count == 0)   // { 0 }
                                 instruction = "0";
                             else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 1) % 8))     // stdin
-                                instruction = "s";
+                                instruction = "R";
                             else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 3) % 8))     // invert
                                 instruction = "I";
                             else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 5) % 8))     // no-op
@@ -184,56 +197,76 @@ namespace ZiimHelper
                             else if (directions.Count == 2 && directions.Contains((Direction) (((int) sai.Direction + 3) % 8)) && directions.Contains((Direction) (((int) sai.Direction + 5) % 8)))  // label
                                 instruction = "L";
                         }
-                        else
+                    }
+                    else
+                    {
+                        var dai = (DoubleArrowInfo) arr;
+                        if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8))  // splitter
                         {
-                            var dai = (DoubleArrowInfo) arr;
-                            if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8))  // splitter
+                            instruction = "S";
+                            dir = dai.Direction.GetDirection1();
+                        }
+                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 6) % 8))  // splitter
+                        {
+                            instruction = "S";
+                            dir = dai.Direction.GetDirection2();
+                        }
+                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 1) % 8))  // isZero
+                        {
+                            instruction = "Z";
+                            dir = dai.Direction.GetDirection1();
+                        }
+                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 5) % 8))  // isZero
+                        {
+                            instruction = "Z";
+                            dir = dai.Direction.GetDirection2();
+                        }
+                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 3) % 8))  // isEmpty
+                        {
+                            instruction = "E";
+                            dir = dai.Direction.GetDirection1();
+                        }
+                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 7) % 8))  // isEmpty
+                        {
+                            instruction = "E";
+                            dir = dai.Direction.GetDirection2();
+                        }
+                    }
+
+                    if (arr.IsInput)
+                    {
+                        if (arr.Annotation != null)
+                        {
+                            var p = new[] { new Point(0, 0) };
+                            g.Transform.TransformPoints(p);
+                            using (var tr = new GraphicsTransformer(g).Translate(0, -cellSize / 4).RotateAt(45 * ((int) dir % 4 - 2), p[0]).Translate(x + cellSize / 2, y + cellSize / 2))
                             {
-                                instruction = "S";
-                                dir = dai.Direction.GetDirection1();
-                            }
-                            else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 6) % 8))  // splitter
-                            {
-                                instruction = "S";
-                                dir = dai.Direction.GetDirection2();
-                            }
-                            else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 1) % 8))  // isZero
-                            {
-                                instruction = "Z";
-                                dir = dai.Direction.GetDirection1();
-                            }
-                            else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 5) % 8))  // isZero
-                            {
-                                instruction = "Z";
-                                dir = dai.Direction.GetDirection2();
-                            }
-                            else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 3) % 8))  // isEmpty
-                            {
-                                instruction = "E";
-                                dir = dai.Direction.GetDirection1();
-                            }
-                            else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 7) % 8))  // isEmpty
-                            {
-                                instruction = "E";
-                                dir = dai.Direction.GetDirection2();
+                                g.DrawString(
+                                    arr.Annotation,
+                                    new Font(_instructionFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _instructionFont, arr.Annotation)),
+                                    arr.IsInput ? new SolidBrush(parentCloud.Color) : Brushes.Black,
+                                    0, 0,
+                                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                                );
                             }
                         }
-
-                        if (instruction == null)
-                            g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
-                        else
-                            g.DrawString(instruction, new Font(_instructionFont, fontSize / 2), Brushes.Black,
-                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
-                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
-                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-                            );
                     }
+                    else if (instruction != null)
+                    {
+                        g.DrawString(instruction, new Font(_instructionFont, fontSize / 2), Brushes.Black,
+                            (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
+                            (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
+                            new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                        );
+                    }
+                    else
+                        g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
                 }
             }
 
             StringFormat sf = null;
-            foreach (var pair in _file.Items.SelectMany(i => i.Arrows).UniquePairs())
-                if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y)
+            foreach (var pair in _file.Arrows.UniquePairs())
+                if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y && pair.Item1.IsInput == pair.Item2.IsInput)
                     g.DrawString("!!!", new Font(_arrowFont, fontSize, FontStyle.Italic), Brushes.Red,
                         cellSize * (pair.Item1.X - _paintMinX) + cellSize / 2, cellSize * (pair.Item1.Y - _paintMinY) + cellSize / 2,
                         sf ?? (sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }));
@@ -245,7 +278,7 @@ namespace ZiimHelper
             {
                 x += xOffset;
                 y += yOffset;
-                var found = _file.Items.SelectMany(itm => itm.Arrows).FirstOrDefault(arrow => arrow.X == x && arrow.Y == y);
+                var found = _file.Arrows.FirstOrDefault(arrow => !arrow.IsInput && arrow.X == x && arrow.Y == y);
                 if (found != null)
                     return found;
             }
@@ -256,20 +289,52 @@ namespace ZiimHelper
         private void drawInRoundedRectangle(Graphics g, string text, PointF location, Color background, Color outline, Color textColor)
         {
             var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            var size = g.MeasureString(text, new Font(_warningFont, _paintFontSize / 5), int.MaxValue, sf) + new SizeF(6, 2);
+            var size = g.MeasureString(text, new Font(_annotationFont, _paintFontSize / 5), int.MaxValue, sf) + new SizeF(6, 2);
             var realLocation = location - new SizeF(size.Width / 2, size.Height / 2);
             var path = GraphicsUtil.RoundedRectangle(new RectangleF(realLocation, size), Math.Min(size.Width, size.Height) / 3);
             g.FillPath(new SolidBrush(background), path);
             g.DrawPath(new Pen(outline, 1), path);
-            g.DrawString(text, new Font(_warningFont, _paintFontSize / 5), new SolidBrush(textColor), new RectangleF(realLocation + new SizeF(3, 1), size - new SizeF(6, 2)), sf);
+            g.DrawString(text, new Font(_annotationFont, _paintFontSize / 5), new SolidBrush(textColor), new RectangleF(realLocation + new SizeF(3, 1), size - new SizeF(6, 2)), sf);
         }
 
         private void rotate(object sender, EventArgs __)
         {
             if (_selected.Count == 0)
                 return;
+
+            if (_selected.Count == 1 && _selected.Single() is ArrowInfo)
+            {
+                ((ArrowInfo) _selected.Single()).Rotate(sender == miRotateClockwise);
+                _fileChanged = true;
+                refresh();
+                return;
+            }
+
+            var minX = _selected.SelectMany(itm => itm.Arrows).Min(a => a.X);
+            var minY = _selected.SelectMany(itm => itm.Arrows).Min(a => a.Y);
+            var maxX = _selected.SelectMany(itm => itm.Arrows).Max(a => a.X);
+            var maxY = _selected.SelectMany(itm => itm.Arrows).Max(a => a.Y);
+
             foreach (var arrow in _selected.SelectMany(itm => itm.Arrows))
-                arrow.Rotate(sender == miRotateClockwise);
+            {
+                var x = arrow.X - minX;
+                var y = arrow.Y - minY;
+
+                if (sender == miRotateClockwise)
+                {
+                    arrow.X = minX + (maxY - minY) - y;
+                    arrow.Y = minY + x;
+                    arrow.Rotate(true);
+                    arrow.Rotate(true);
+                }
+                else
+                {
+                    arrow.X = minX + y;
+                    arrow.Y = minY + (maxX - minX) - x;
+                    arrow.Rotate(false);
+                    arrow.Rotate(false);
+                }
+            }
             refresh();
         }
 
@@ -335,23 +400,12 @@ namespace ZiimHelper
         {
             var xOffset = sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0;
             var yOffset = sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0;
-            var squaresTaken = new Dictionary<int, HashSet<int>>();
-            foreach (var arrow in _file.Items.SelectMany(item => item.Arrows))
-                squaresTaken.AddSafe(arrow.X, arrow.Y);
-
-            bool anyTaken;
-            do
+            foreach (var arrow in _selected.SelectMany(item => item.Arrows))
             {
-                anyTaken = false;
-                foreach (var arrow in _selected.SelectMany(item => item.Arrows))
-                {
-                    arrow.X += xOffset;
-                    arrow.Y += yOffset;
-                    if (squaresTaken.Contains(arrow.X, arrow.Y))
-                        anyTaken = true;
-                }
+                arrow.X += xOffset;
+                arrow.Y += yOffset;
             }
-            while (anyTaken);
+            _fileChanged = true;
             refresh();
         }
 
@@ -424,7 +478,7 @@ namespace ZiimHelper
             _mouseDraggedTo = new Point(x, y);
 
             if (miMoveSelect.Checked)
-                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && _file.Items.SelectMany(itm => itm.Arrows).Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
+                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && _file.Arrows.Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
 
             if (_draggingSelectionRectangle)
                 ctImage.Invalidate();
@@ -489,7 +543,9 @@ namespace ZiimHelper
             miConnectionLines.Checked = ZiimHelperProgram.Settings.ViewConnectionLines;
             miInstructions.Checked = ZiimHelperProgram.Settings.ViewInstructions;
             miAnnotations.Checked = ZiimHelperProgram.Settings.ViewAnnotations;
-            miClouds.Checked = ZiimHelperProgram.Settings.ViewClouds;
+            miInnerClouds.Checked = ZiimHelperProgram.Settings.ViewInnerClouds;
+            miOwnCloud.Checked = ZiimHelperProgram.Settings.ViewOwnCloud;
+            miCoordinates.Checked = ZiimHelperProgram.Settings.ViewCoordinates;
 
             (ZiimHelperProgram.Settings.EditMode == EditMode.MoveSelect ? miMoveSelect :
                 ZiimHelperProgram.Settings.EditMode == EditMode.Draw ? miDraw : Ut.Throw<ToolStripMenuItem>(new InvalidOperationException())).Checked = true;
@@ -519,14 +575,14 @@ namespace ZiimHelper
                 return;
             }
 
-            var minX = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.X);
-            var minY = _file.Items.SelectMany(itm => itm.Arrows).Min(a => a.Y);
-            var maxX = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.X);
-            var maxY = _file.Items.SelectMany(itm => itm.Arrows).Max(a => a.Y);
+            var minX = _file.Arrows.Min(a => a.X);
+            var minY = _file.Arrows.Min(a => a.Y);
+            var maxX = _file.Arrows.Max(a => a.X);
+            var maxY = _file.Arrows.Max(a => a.Y);
 
             var arr = Ut.NewArray<char>(maxY - minY + 1, maxX - minX + 1, (i, j) => ' ');
-            foreach (var arrow in _file.Items.SelectMany(itm => itm.Arrows))
-                arr[arrow.Y - minY][arrow.X - minX] = arrow.Arrow;
+            foreach (var arrow in _file.Arrows)
+                arr[arrow.Y - minY][arrow.X - minX] = arrow.Character;
             Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
         }
 
@@ -611,7 +667,10 @@ namespace ZiimHelper
             if (newAnnotation != null)
             {
                 foreach (var arr in _selected.SelectMany(itm => itm.Arrows))
-                    arr.Annotation = newAnnotation;
+                {
+                    arr.Annotation = string.IsNullOrWhiteSpace(newAnnotation) ? null : newAnnotation;
+                    _fileChanged = true;
+                }
                 refresh();
             }
         }
@@ -648,7 +707,7 @@ namespace ZiimHelper
                     var mousePosition = ctImage.PointToClient(Control.MousePosition);
                     var x = _paintCellSize == 0 ? 0 : (mousePosition.X - _paintTarget.Left) / _paintCellSize + _paintMinX;
                     var y = _paintCellSize == 0 ? 0 : (mousePosition.Y - _paintTarget.Top) / _paintCellSize + _paintMinY;
-                    ctImage.Cursor = _file.Items.SelectMany(itm => itm.Arrows).Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
+                    ctImage.Cursor = _file.Arrows.Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
                 }
             }
             else if (miDraw.Checked)
@@ -667,7 +726,7 @@ namespace ZiimHelper
             if (!canDestroy())
                 return;
             _filename = null;
-            _file = new ZiimFile();
+            _file = new Cloud();
             _selected.Clear();
             _fileChanged = false;
             refresh();
@@ -693,10 +752,10 @@ namespace ZiimHelper
             {
                 CheckFileExists = true,
                 CheckPathExists = true,
-                DefaultExt = "ziim",
+                DefaultExt = "ziimx",
                 Multiselect = false,
                 Title = "Open Ziim program",
-                Filter = "Ziim programs|*.ziim"
+                Filter = "Annotated Ziim programs|*.ziimx|Plain-text Ziim programs|*.ziim"
             })
             {
                 if (dlg.ShowDialog() == DialogResult.Cancel)
@@ -710,7 +769,29 @@ namespace ZiimHelper
         {
             try
             {
-                _file = XmlClassify.LoadObjectFromXmlFile<ZiimFile>(filename);
+                var text = File.ReadAllText(filename);
+                if (text.All(ch => " \r\n↖↑↗→↘↓↙←↕⤢↔⤡".Contains(ch)))
+                {
+                    // treat as plain-text program
+                    var arrows = text.Replace("\r", "").Split('\n')
+                        .SelectMany((line, lineNumber) => line.SelectMany((ch, chIndex) =>
+                        {
+                            var p = "↑↗→↘↓↙←↖".IndexOf(ch);
+                            if (p != -1)
+                                return new ArrowInfo[] { new SingleArrowInfo { X = chIndex, Y = lineNumber, Direction = (Direction) p, IsInputArrow = false, Marked = false } };
+                            p = "↕⤢↔⤡".IndexOf(ch);
+                            if (p != -1)
+                                return new ArrowInfo[] { new DoubleArrowInfo { X = chIndex, Y = lineNumber, Direction = (DoubleDirection) p, Marked = false } };
+                            return Enumerable.Empty<ArrowInfo>();
+                        }));
+                    _file = new Cloud(arrows);
+                    _filename = filename + "x";
+                }
+                else
+                {
+                    _file = XmlClassify.LoadObjectFromXmlFile<Cloud>(filename);
+                    _filename = filename;
+                }
             }
             catch (Exception e)
             {
@@ -718,7 +799,6 @@ namespace ZiimHelper
                 return;
             }
             _selected.Clear();
-            _filename = filename;
             _fileChanged = false;
             refresh();
         }
@@ -730,7 +810,9 @@ namespace ZiimHelper
             ZiimHelperProgram.Settings.ViewConnectionLines = miConnectionLines.Checked;
             ZiimHelperProgram.Settings.ViewInstructions = miInstructions.Checked;
             ZiimHelperProgram.Settings.ViewAnnotations = miAnnotations.Checked;
-            ZiimHelperProgram.Settings.ViewClouds = miClouds.Checked;
+            ZiimHelperProgram.Settings.ViewInnerClouds = miInnerClouds.Checked;
+            ZiimHelperProgram.Settings.ViewOwnCloud = miOwnCloud.Checked;
+            ZiimHelperProgram.Settings.ViewCoordinates = miCoordinates.Checked;
             ZiimHelperProgram.Settings.EditMode = miDraw.Checked ? EditMode.Draw : EditMode.MoveSelect;
 
             if (!canDestroy())
@@ -771,20 +853,19 @@ namespace ZiimHelper
             {
                 if (dlg.ShowDialog() == DialogResult.Cancel)
                     return;
-                ZiimFile file;
+                Cloud file;
                 try
                 {
-                    file = XmlClassify.LoadObjectFromXmlFile<ZiimFile>(dlg.FileName);
+                    file = XmlClassify.LoadObjectFromXmlFile<Cloud>(dlg.FileName);
                 }
                 catch (Exception e)
                 {
                     DlgMessage.Show("The file could not be opened:\n\n" + e.Message, "Error", DlgType.Error);
                     return;
                 }
-                var cloud = new Cloud { Items = file.Items };
-                _file.Items.Add(cloud);
-                _selected.Add(cloud);
-                jiggle(cloud);
+                jiggle(file);
+                _file.Items.Add(file);
+                _selected.Add(file);
                 _fileChanged = true;
                 refresh();
             }
@@ -793,7 +874,7 @@ namespace ZiimHelper
         private void jiggle(Item item)
         {
             var squaresTaken = new Dictionary<int, HashSet<int>>();
-            foreach (var arrow in _file.Items.Except(new[] { item }).SelectMany(itm => itm.Arrows))
+            foreach (var arrow in _file.Arrows)
                 squaresTaken.AddSafe(arrow.X, arrow.Y);
             int radius = 0, px = 0, py = 0;
             while (item.Arrows.Any(arr => squaresTaken.Contains(arr.X, arr.Y)))
@@ -822,6 +903,31 @@ namespace ZiimHelper
                 }
                 px = x;
                 py = y;
+            }
+        }
+
+        private void toggleInput(object _, EventArgs __)
+        {
+            bool any = false;
+            foreach (var singleArrow in _selected.OfType<SingleArrowInfo>())
+            {
+                singleArrow.IsInputArrow = !singleArrow.IsInput;
+                any = true;
+            }
+            if (any)
+                refresh();
+        }
+
+        private void cloudColor(object _, EventArgs __)
+        {
+            using (var dlg = new ColorDialog())
+            {
+                var result = dlg.ShowDialog();
+                if (result == DialogResult.Cancel)
+                    return;
+                _file.Color = dlg.Color;
+                refresh();
+                _fileChanged = true;
             }
         }
     }

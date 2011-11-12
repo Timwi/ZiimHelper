@@ -20,6 +20,22 @@ namespace ZiimHelper
             }
         }
 
+        public static char ToCharDouble(this Direction dir)
+        {
+            switch (dir)
+            {
+                case Direction.Up: return '⇑';
+                case Direction.UpRight: return '⇗';
+                case Direction.Right: return '⇒';
+                case Direction.DownRight: return '⇘';
+                case Direction.Down: return '⇓';
+                case Direction.DownLeft: return '⇙';
+                case Direction.Left: return '⇐';
+                case Direction.UpLeft: return '⇖';
+                default: throw new InvalidOperationException();
+            }
+        }
+
         public static int XOffset(this Direction dir)
         {
             switch (dir)

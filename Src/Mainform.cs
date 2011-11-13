@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -12,7 +14,6 @@ using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
 using RT.Util.Xml;
-using System.IO;
 
 namespace ZiimHelper
 {
@@ -49,6 +50,7 @@ namespace ZiimHelper
             if (_paintCellSize < 1)
                 return;
             e.Graphics.SetHighQuality();
+            e.Graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
 
             using (new GraphicsTransformer(e.Graphics).Translate(_paintTarget.Left - _paintMinX * _paintCellSize, _paintTarget.Top - _paintMinY * _paintCellSize))
                 foreach (var item in _selected)
@@ -92,6 +94,8 @@ namespace ZiimHelper
             _paintMinY = _file.Arrows.Min(a => a.Y);
             _paintMaxX = _file.Arrows.Max(a => a.X);
             _paintMaxY = _file.Arrows.Max(a => a.Y);
+            if (_file.Label != null)
+                _paintMaxY++;
 
             var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);
@@ -110,6 +114,7 @@ namespace ZiimHelper
         private void paintInto(Graphics g, int cellSize, float fontSize)
         {
             g.SetHighQuality();
+            g.TextRenderingHint = TextRenderingHint.AntiAlias;
             var maxSize = Math.Max(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1);
 
             if (miGrid.Checked)
@@ -124,21 +129,24 @@ namespace ZiimHelper
                 using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * cellSize, -_paintMinY * cellSize))
                     foreach (var cloud in miInnerClouds.Checked ? _file.Clouds : new[] { _file })
                         if (cloud != _file || miOwnCloud.Checked)
-                            cloud.DrawCloud(g, cellSize);
+                            cloud.DrawCloud(g, cellSize, cloud == _file);
 
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
-            foreach (var inf in _file.ArrowsWithParents)
+            foreach (var inf in _file.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsInput))
             {
                 var arr = inf.Item1;
                 var parentCloud = inf.Item2;
-                g.DrawString(
-                    arr.Character.ToString(),
-                    new Font(_arrowFont, fontSize),
-                    arr.IsInput ? new SolidBrush(parentCloud.Color) : arr.Marked ? Brushes.Red : Brushes.Black,
-                    (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
-                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-                );
+
+                if ((!arr.IsInput || parentCloud != _file || miOwnCloud.Checked) &&
+                    (!arr.IsInput || parentCloud == _file || miInnerClouds.Checked))
+                    g.DrawString(
+                        arr.Character.ToString(),
+                        new Font(_arrowFont, fontSize),
+                        arr.IsInput ? new SolidBrush(parentCloud.Color) : arr.Marked ? Brushes.Red : Brushes.Black,
+                        (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
+                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                    );
 
                 if (miCoordinates.Checked)
                     g.DrawString(arr.CoordsString, new Font(_annotationFont, fontSize / 4), Brushes.Black, (arr.X - _paintMinX) * cellSize, (arr.Y - _paintMinY) * cellSize);
@@ -166,7 +174,7 @@ namespace ZiimHelper
                 }
             }
 
-            foreach (var inf in _file.ArrowsWithParents)
+            foreach (var inf in _file.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsInput))
             {
                 var arr = inf.Item1;
                 var parentCloud = inf.Item2;
@@ -235,7 +243,7 @@ namespace ZiimHelper
 
                     if (arr.IsInput)
                     {
-                        if (arr.Annotation != null)
+                        if (arr.Annotation != null && ((miOwnCloud.Checked && parentCloud == _file) || (miInnerClouds.Checked && parentCloud != _file)))
                         {
                             var p = new[] { new Point(0, 0) };
                             g.Transform.TransformPoints(p);
@@ -243,7 +251,7 @@ namespace ZiimHelper
                             {
                                 g.DrawString(
                                     arr.Annotation,
-                                    new Font(_instructionFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _instructionFont, arr.Annotation)),
+                                    new Font(_annotationFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _annotationFont, arr.Annotation)),
                                     arr.IsInput ? new SolidBrush(parentCloud.Color) : Brushes.Black,
                                     0, 0,
                                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
@@ -387,7 +395,13 @@ namespace ZiimHelper
 
         private bool saveAs()
         {
-            using (var dlg = new SaveFileDialog { AddExtension = true, DefaultExt = "ziim", Title = "Save Ziim program as", Filter = "Ziim programs|*.ziim" })
+            using (var dlg = new SaveFileDialog
+            {
+                AddExtension = true,
+                DefaultExt = "ziimx",
+                Title = "Save Ziim program as",
+                Filter = "Annotated Ziim programs|*.ziimx|Plain-text Ziim programs|*.ziim"
+            })
             {
                 if (dlg.ShowDialog() == DialogResult.Cancel)
                     return false;
@@ -594,7 +608,7 @@ namespace ZiimHelper
                 sender == miCopyImageByWidth ? "Specify the desired bitmap width:" :
                 sender == miCopyImageByHeight ? "Specify the desired bitmap height:" : Ut.Throw<string>(new InvalidOperationException()),
 
-                sender == miCopyImageByFont ? "19" :
+                sender == miCopyImageByFont ? "24" :
                 sender == miCopyImageByWidth ? "1000" :
                 sender == miCopyImageByHeight ? "1000" : Ut.Throw<string>(new InvalidOperationException()),
 
@@ -845,10 +859,10 @@ namespace ZiimHelper
             {
                 CheckFileExists = true,
                 CheckPathExists = true,
-                DefaultExt = "ziim",
+                DefaultExt = "ziimx",
                 Multiselect = false,
                 Title = "Import Ziim sub-program",
-                Filter = "Ziim programs|*.ziim"
+                Filter = "Annotated Ziim programs|*.ziimx|Plain-text Ziim programs|*.ziim"
             })
             {
                 if (dlg.ShowDialog() == DialogResult.Cancel)
@@ -920,14 +934,25 @@ namespace ZiimHelper
 
         private void cloudColor(object _, EventArgs __)
         {
-            using (var dlg = new ColorDialog())
+            using (var dlg = new ColorDialog { Color = _file.Color })
             {
                 var result = dlg.ShowDialog();
                 if (result == DialogResult.Cancel)
                     return;
                 _file.Color = dlg.Color;
-                refresh();
                 _fileChanged = true;
+                refresh();
+            }
+        }
+
+        private void addText(object _, EventArgs __)
+        {
+            var text = InputBox.GetLine("Enter text:", _file.Label ?? "");
+            if (text != null)
+            {
+                _file.Label = string.IsNullOrEmpty(text) ? null : text;
+                _fileChanged = true;
+                refresh();
             }
         }
     }

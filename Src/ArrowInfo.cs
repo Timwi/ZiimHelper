@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using RT.Util;
+using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Xml;
 
@@ -14,7 +15,6 @@ namespace ZiimHelper
         public abstract IEnumerable<ArrowInfo> Arrows { get; }
         public abstract IEnumerable<Cloud> Clouds { get; }
         public abstract void Move(int deltaX, int deltaY);
-        public abstract void DrawReorienting(Graphics g, int cellSize);
         public abstract void DrawSelected(Graphics g, int cellSize);
         public abstract bool IsContainedIn(int minX, int minY, int maxX, int maxY);
     }
@@ -26,6 +26,7 @@ namespace ZiimHelper
 
         public List<Item> Items = new List<Item>();
         public Color Color = Color.FromArgb(64, 64, 192, 255);
+        public string Label;
         public override IEnumerable<ArrowInfo> Arrows { get { return Items.SelectMany(item => item.Arrows); } }
         public override IEnumerable<Cloud> Clouds { get { return this.Concat(Items.SelectMany(i => i.Clouds)); } }
         public IEnumerable<Tuple<ArrowInfo, Cloud>> ArrowsWithParents
@@ -41,20 +42,19 @@ namespace ZiimHelper
             foreach (var item in Items)
                 item.Move(deltaX, deltaY);
         }
-        public override void DrawReorienting(Graphics g, int cellSize)
-        {
-            drawCloud(g, cellSize, outline: new Pen(Brushes.Green, 3), margin: 0);
-        }
         public override void DrawSelected(Graphics g, int cellSize)
         {
             drawCloud(g, cellSize, outline: new Pen(Brushes.Blue, 2), margin: cellSize / 10);
         }
-        public void DrawCloud(Graphics g, int cellSize)
+        public void DrawCloud(Graphics g, int cellSize, bool own)
         {
-            drawCloud(g, cellSize, fill: new SolidBrush(Color.FromArgb(64, Color)), margin: cellSize / 10);
+            drawCloud(g, cellSize, fill: true, margin: cellSize / 10, style: own ? FontStyle.Bold : FontStyle.Regular, constrainWidth: own);
         }
 
-        private void drawCloud(Graphics g, int cellSize, Pen outline = null, Brush fill = null, int margin = 0)
+        [XmlIgnore]
+        private static FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
+
+        private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular, bool constrainWidth = false)
         {
             var noInputArrows = Arrows.Where(a => !a.IsInput);
             var minX = noInputArrows.Min(a => a.X);
@@ -77,14 +77,35 @@ namespace ZiimHelper
                 }
             }
 
-            var path = Util.CloudPath(new Virtual2DArrayImpl((x, y) => x < 0 || x > maxX - minX || y < 0 || y > maxY - minY ? false : taken[x][y]) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, margin);
+            var path = Util.CloudPath(new Virtual2DArrayImpl((x, y) =>
+            {
+                if (x < 0 || x > maxX - minX || y < 0 || y > maxY - minY)
+                    return false;
+                var left = Enumerable.Range(0, maxX - minX + 1).IndexOf(i => taken[i][y]);
+                var right = maxX - minX - Enumerable.Range(0, maxX - minX + 1).IndexOf(i => taken[maxX - minX - i][y]);
+                var top = Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][i]);
+                var bottom = maxY - minY - Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][maxY - minY - i]);
+                return (left != -1 && left <= x && right >= x) || (top != -1 && top <= y && bottom >= y);
+            }) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, margin);
 
             var m = new Matrix();
             m.Translate(cellSize * minX, cellSize * minY);
             path.Transform(m);
 
-            if (fill != null)
-                g.FillPath(fill, path);
+            if (fill)
+            {
+                g.FillPath(new SolidBrush(Color.FromArgb(64, Color)), path);
+                if (Label != null)
+                {
+                    g.DrawString(
+                        Label,
+                        new Font(_cloudFont, g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: constrainWidth ? (maxX - minX + 1) * cellSize : (float?) null, maxHeight: cellSize), style),
+                        new SolidBrush(Color),
+                        new RectangleF(minX * cellSize, (Arrows.Max(a => a.Y) + 1) * cellSize, (maxX - minX + 1) * cellSize, 0),
+                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near }
+                    );
+                }
+            }
             if (outline != null)
                 g.DrawPath(outline, path);
         }
@@ -114,7 +135,7 @@ namespace ZiimHelper
         public abstract void Rotate(bool clockwise);
         public override void Move(int deltaX, int deltaY) { X += deltaX; Y += deltaY; }
         public abstract void Reorient(bool a, bool b, bool c, bool d);
-        public override void DrawReorienting(Graphics g, int cellSize)
+        public void DrawReorienting(Graphics g, int cellSize)
         {
             var rect = new Rectangle(cellSize * X, cellSize * Y, cellSize, cellSize);
             g.FillEllipse(new SolidBrush(Color.FromArgb(32, 128, 32, 192)), rect);
@@ -135,7 +156,7 @@ namespace ZiimHelper
     {
         public Direction Direction { get; set; }
         public bool IsInputArrow { get; set; }
-        public override char Character { get { return IsInput ? Direction.ToCharDouble() : Direction.ToChar(); } }
+        public override char Character { get { return IsInputArrow ? Direction.ToCharDouble() : Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (Direction) (((int) Direction + (clockwise ? 1 : 7)) % 8); }
         public override IEnumerable<Direction> Directions { get { return new[] { Direction }; } }
         public override bool IsInput { get { return IsInputArrow; } }

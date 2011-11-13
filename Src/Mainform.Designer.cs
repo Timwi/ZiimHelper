@@ -67,10 +67,11 @@
             this.miAnnotations = new System.Windows.Forms.ToolStripMenuItem();
             this.miOwnCloud = new System.Windows.Forms.ToolStripMenuItem();
             this.miInnerClouds = new System.Windows.Forms.ToolStripMenuItem();
+            this.miCoordinates = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
-            this.miCoordinates = new System.Windows.Forms.ToolStripMenuItem();
+            this.miText = new System.Windows.Forms.ToolStripMenuItem();
             this.ctMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -343,7 +344,8 @@
             // mnuCloud
             // 
             this.mnuCloud.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.miColor});
+            this.miColor,
+            this.miText});
             this.mnuCloud.Name = "mnuCloud";
             this.mnuCloud.Size = new System.Drawing.Size(46, 20);
             this.mnuCloud.Text = "&Cloud";
@@ -351,7 +353,7 @@
             // miColor
             // 
             this.miColor.Name = "miColor";
-            this.miColor.Size = new System.Drawing.Size(152, 22);
+            this.miColor.Size = new System.Drawing.Size(166, 22);
             this.miColor.Text = "&Color...";
             this.miColor.Click += new System.EventHandler(this.cloudColor);
             // 
@@ -388,9 +390,9 @@
             // miInstructions
             // 
             this.miInstructions.Name = "miInstructions";
-            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
             this.miInstructions.Size = new System.Drawing.Size(189, 22);
-            this.miInstructions.Text = "Ins&tructions";
+            this.miInstructions.Text = "Instr&uctions";
             this.miInstructions.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miAnnotations
@@ -417,6 +419,13 @@
             this.miInnerClouds.Text = "Inner clou&ds";
             this.miInnerClouds.Click += new System.EventHandler(this.toggleViewOption);
             // 
+            // miCoordinates
+            // 
+            this.miCoordinates.Name = "miCoordinates";
+            this.miCoordinates.Size = new System.Drawing.Size(189, 22);
+            this.miCoordinates.Text = "&Coordinates";
+            this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
+            // 
             // mnuMode
             // 
             this.mnuMode.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -442,12 +451,13 @@
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
             // 
-            // miCoordinates
+            // miText
             // 
-            this.miCoordinates.Name = "miCoordinates";
-            this.miCoordinates.Size = new System.Drawing.Size(189, 22);
-            this.miCoordinates.Text = "&Coordinates";
-            this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
+            this.miText.Name = "miText";
+            this.miText.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.miText.Size = new System.Drawing.Size(166, 22);
+            this.miText.Text = "&Add text...";
+            this.miText.Click += new System.EventHandler(this.addText);
             // 
             // Mainform
             // 
@@ -514,6 +524,7 @@
         private System.Windows.Forms.ToolStripMenuItem mnuCloud;
         private System.Windows.Forms.ToolStripMenuItem miColor;
         private System.Windows.Forms.ToolStripMenuItem miCoordinates;
+        private System.Windows.Forms.ToolStripMenuItem miText;
     }
 }
 

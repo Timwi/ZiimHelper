@@ -945,7 +945,7 @@ namespace ZiimHelper
             }
         }
 
-        private void addText(object _, EventArgs __)
+        private void setLabel(object _, EventArgs __)
         {
             var text = InputBox.GetLine("Enter text:", _file.Label ?? "");
             if (text != null)

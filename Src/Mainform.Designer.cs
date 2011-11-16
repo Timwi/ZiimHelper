@@ -60,6 +60,7 @@
             this.miAnnotate = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuCloud = new System.Windows.Forms.ToolStripMenuItem();
             this.miColor = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSetLabel = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuView = new System.Windows.Forms.ToolStripMenuItem();
             this.miGrid = new System.Windows.Forms.ToolStripMenuItem();
             this.miConnectionLines = new System.Windows.Forms.ToolStripMenuItem();
@@ -71,7 +72,6 @@
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
-            this.miText = new System.Windows.Forms.ToolStripMenuItem();
             this.ctMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -345,7 +345,7 @@
             // 
             this.mnuCloud.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.miColor,
-            this.miText});
+            this.miSetLabel});
             this.mnuCloud.Name = "mnuCloud";
             this.mnuCloud.Size = new System.Drawing.Size(46, 20);
             this.mnuCloud.Text = "&Cloud";
@@ -353,9 +353,17 @@
             // miColor
             // 
             this.miColor.Name = "miColor";
-            this.miColor.Size = new System.Drawing.Size(166, 22);
+            this.miColor.Size = new System.Drawing.Size(165, 22);
             this.miColor.Text = "&Color...";
             this.miColor.Click += new System.EventHandler(this.cloudColor);
+            // 
+            // miSetLabel
+            // 
+            this.miSetLabel.Name = "miSetLabel";
+            this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.miSetLabel.Size = new System.Drawing.Size(165, 22);
+            this.miSetLabel.Text = "Se&t label...";
+            this.miSetLabel.Click += new System.EventHandler(this.setLabel);
             // 
             // mnuView
             // 
@@ -451,14 +459,6 @@
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
             // 
-            // miText
-            // 
-            this.miText.Name = "miText";
-            this.miText.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.miText.Size = new System.Drawing.Size(166, 22);
-            this.miText.Text = "&Add text...";
-            this.miText.Click += new System.EventHandler(this.addText);
-            // 
             // Mainform
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -524,7 +524,7 @@
         private System.Windows.Forms.ToolStripMenuItem mnuCloud;
         private System.Windows.Forms.ToolStripMenuItem miColor;
         private System.Windows.Forms.ToolStripMenuItem miCoordinates;
-        private System.Windows.Forms.ToolStripMenuItem miText;
+        private System.Windows.Forms.ToolStripMenuItem miSetLabel;
     }
 }
 

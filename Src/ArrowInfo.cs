@@ -17,6 +17,7 @@ namespace ZiimHelper
         public abstract void Move(int deltaX, int deltaY);
         public abstract void DrawSelected(Graphics g, int cellSize);
         public abstract bool IsContainedIn(int minX, int minY, int maxX, int maxY);
+        public abstract void GetBounds(out int minX, out int maxX, out int minY, out int maxY);
     }
 
     sealed class Cloud : Item
@@ -42,6 +43,30 @@ namespace ZiimHelper
             foreach (var item in Items)
                 item.Move(deltaX, deltaY);
         }
+        public override void GetBounds(out int minX, out int maxX, out int minY, out int maxY)
+        {
+            bool first = true;
+            minX = maxX = minY = maxY = 0;
+            foreach (var item in Items)
+            {
+                if (first)
+                {
+                    item.GetBounds(out minX, out maxX, out minY, out maxY);
+                    first = false;
+                }
+                else
+                {
+                    int miX, maX, miY, maY;
+                    item.GetBounds(out miX, out maX, out miY, out maY);
+                    minX = Math.Min(minX, miX);
+                    maxX = Math.Max(maxX, maX);
+                    minY = Math.Min(minY, miY);
+                    maxY = Math.Max(maxY, maY);
+                }
+            }
+            if (Label != null)
+                maxY++;
+        }
         public override void DrawSelected(Graphics g, int cellSize)
         {
             drawCloud(g, cellSize, outline: new Pen(Brushes.Blue, 2), margin: cellSize / 10);
@@ -56,17 +81,35 @@ namespace ZiimHelper
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular, bool constrainWidth = false)
         {
-            var noInputArrows = Arrows.Where(a => !a.IsInput);
-            var minX = noInputArrows.Min(a => a.X);
-            var maxX = noInputArrows.Max(a => a.X);
-            var minY = noInputArrows.Min(a => a.Y);
-            var maxY = noInputArrows.Max(a => a.Y);
+            if (!Arrows.Any(a => !a.IsInput))
+                return;
+            int minX, maxX, minY, maxY;
+            GetBounds(out minX, out maxX, out minY, out maxY);
             var taken = Ut.NewArray<bool>(maxX - minX + 1, maxY - minY + 1);
-            foreach (var arr in noInputArrows)
+            foreach (var arr in Arrows)
             {
+                if (arr.IsInput)
+                    continue;
                 foreach (var dir in arr.Directions)
                 {
                     int x = arr.X, y = arr.Y;
+                    taken[x - minX][y - minY] = true;
+                    bool pointsToOutside = false;
+                    do
+                    {
+                        x += dir.XOffset();
+                        y += dir.YOffset();
+                        if (x < minX || x > maxX || y < minY || y > maxY)
+                        {
+                            pointsToOutside = true;
+                            break;
+                        }
+                    }
+                    while (!Arrows.Any(a => a.X == x && a.Y == y && !a.IsInput));
+                    if (pointsToOutside)
+                        continue;
+
+                    x = arr.X; y = arr.Y;
                     do
                     {
                         taken[x - minX][y - minY] = true;
@@ -101,7 +144,7 @@ namespace ZiimHelper
                         Label,
                         new Font(_cloudFont, g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: constrainWidth ? (maxX - minX + 1) * cellSize : (float?) null, maxHeight: cellSize), style),
                         new SolidBrush(Color),
-                        new RectangleF(minX * cellSize, (Arrows.Max(a => a.Y) + 1) * cellSize, (maxX - minX + 1) * cellSize, 0),
+                        new RectangleF(minX * cellSize, maxY * cellSize, (maxX - minX + 1) * cellSize, 0),
                         new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near }
                     );
                 }
@@ -131,6 +174,11 @@ namespace ZiimHelper
         public override IEnumerable<ArrowInfo> Arrows { get { return new[] { this }; } }
         public override IEnumerable<Cloud> Clouds { get { return Enumerable.Empty<Cloud>(); } }
 
+        public override void GetBounds(out int minX, out int maxX, out int minY, out int maxY)
+        {
+            minX = maxX = X;
+            minY = maxY = Y;
+        }
         public override string ToString() { return CoordsString + (Annotation == null ? "" : " " + Annotation) + (Marked ? " [M] " : " ") + Character; }
         public abstract void Rotate(bool clockwise);
         public override void Move(int deltaX, int deltaY) { X += deltaX; Y += deltaY; }

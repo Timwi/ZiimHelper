@@ -90,12 +90,7 @@ namespace ZiimHelper
             if (_file.Items.Count < 1)
                 return;
 
-            _paintMinX = _file.Arrows.Min(a => a.X);
-            _paintMinY = _file.Arrows.Min(a => a.Y);
-            _paintMaxX = _file.Arrows.Max(a => a.X);
-            _paintMaxY = _file.Arrows.Max(a => a.Y);
-            if (_file.Label != null)
-                _paintMaxY++;
+            _file.GetBounds(out _paintMinX, out _paintMaxX, out _paintMinY, out _paintMaxY);
 
             var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);

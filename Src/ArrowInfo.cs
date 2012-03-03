@@ -142,7 +142,7 @@ namespace ZiimHelper
                 {
                     g.DrawString(
                         Label,
-                        new Font(_cloudFont, g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: constrainWidth ? (maxX - minX + 1) * cellSize : (float?) null, maxHeight: cellSize), style),
+                        new Font(_cloudFont, g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: constrainWidth ? ((maxX - minX + 1) * cellSize).Nullable() : null, maxHeight: cellSize), style),
                         new SolidBrush(Color),
                         new RectangleF(minX * cellSize, maxY * cellSize, (maxX - minX + 1) * cellSize, 0),
                         new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near }

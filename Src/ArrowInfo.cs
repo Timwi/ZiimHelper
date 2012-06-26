@@ -81,14 +81,14 @@ namespace ZiimHelper
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular, bool constrainWidth = false)
         {
-            if (!Arrows.Any(a => !a.IsInput))
+            if (!Arrows.Any(a => !a.IsTerminal))
                 return;
             int minX, maxX, minY, maxY;
             GetBounds(out minX, out maxX, out minY, out maxY);
             var taken = Ut.NewArray<bool>(maxX - minX + 1, maxY - minY + 1);
             foreach (var arr in Arrows)
             {
-                if (arr.IsInput)
+                if (arr.IsTerminal)
                     continue;
                 foreach (var dir in arr.Directions)
                 {
@@ -105,7 +105,7 @@ namespace ZiimHelper
                             break;
                         }
                     }
-                    while (!Arrows.Any(a => a.X == x && a.Y == y && !a.IsInput));
+                    while (!Arrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
                     if (pointsToOutside)
                         continue;
 
@@ -116,7 +116,7 @@ namespace ZiimHelper
                         x += dir.XOffset();
                         y += dir.YOffset();
                     }
-                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !Arrows.Any(a => a.X == x && a.Y == y && !a.IsInput));
+                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !Arrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
                 }
             }
 
@@ -169,7 +169,7 @@ namespace ZiimHelper
         public string Annotation { get; set; }
         public string CoordsString { get { return "(" + X + ", " + Y + ")"; } }
         public abstract char Character { get; }
-        public virtual bool IsInput { get { return false; } }
+        public virtual bool IsTerminal { get { return false; } }
         public abstract IEnumerable<Direction> Directions { get; }
         public override IEnumerable<ArrowInfo> Arrows { get { return new[] { this }; } }
         public override IEnumerable<Cloud> Clouds { get { return Enumerable.Empty<Cloud>(); } }
@@ -203,11 +203,12 @@ namespace ZiimHelper
     class SingleArrowInfo : ArrowInfo
     {
         public Direction Direction { get; set; }
-        public bool IsInputArrow { get; set; }
-        public override char Character { get { return IsInputArrow ? Direction.ToCharDouble() : Direction.ToChar(); } }
+        [XmlIgnoreIfDefault]
+        public bool IsTerminalArrow { get; set; }
+        public override char Character { get { return IsTerminalArrow ? Direction.ToCharDouble() : Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (Direction) (((int) Direction + (clockwise ? 1 : 7)) % 8); }
         public override IEnumerable<Direction> Directions { get { return new[] { Direction }; } }
-        public override bool IsInput { get { return IsInputArrow; } }
+        public override bool IsTerminal { get { return IsTerminalArrow; } }
         public override void Reorient(bool a, bool b, bool c, bool d)
         {
             Direction =

@@ -72,6 +72,7 @@
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
+            this.unusedCtrlShortcuts = new System.Windows.Forms.ToolStripMenuItem();
             this.ctMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -227,7 +228,8 @@
             this.mnuArrow,
             this.mnuCloud,
             this.mnuView,
-            this.mnuMode});
+            this.mnuMode,
+            this.unusedCtrlShortcuts});
             this.ctMenu.Location = new System.Drawing.Point(0, 0);
             this.ctMenu.Name = "ctMenu";
             this.ctMenu.Size = new System.Drawing.Size(716, 24);
@@ -286,6 +288,7 @@
             // miImport
             // 
             this.miImport.Name = "miImport";
+            this.miImport.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
             this.miImport.Size = new System.Drawing.Size(307, 22);
             this.miImport.Text = "&Import...";
             this.miImport.Click += new System.EventHandler(this.import);
@@ -323,10 +326,10 @@
             // miToggleInput
             // 
             this.miToggleInput.Name = "miToggleInput";
-            this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
             this.miToggleInput.Size = new System.Drawing.Size(242, 22);
-            this.miToggleInput.Text = "Toggle &input";
-            this.miToggleInput.Click += new System.EventHandler(this.toggleInput);
+            this.miToggleInput.Text = "Toggle &terminal";
+            this.miToggleInput.Click += new System.EventHandler(this.toggleTerminal);
             // 
             // miSep2
             // 
@@ -353,15 +356,15 @@
             // miColor
             // 
             this.miColor.Name = "miColor";
-            this.miColor.Size = new System.Drawing.Size(165, 22);
+            this.miColor.Size = new System.Drawing.Size(164, 22);
             this.miColor.Text = "&Color...";
             this.miColor.Click += new System.EventHandler(this.cloudColor);
             // 
             // miSetLabel
             // 
             this.miSetLabel.Name = "miSetLabel";
-            this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.miSetLabel.Size = new System.Drawing.Size(165, 22);
+            this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
+            this.miSetLabel.Size = new System.Drawing.Size(164, 22);
             this.miSetLabel.Text = "Se&t label...";
             this.miSetLabel.Click += new System.EventHandler(this.setLabel);
             // 
@@ -390,7 +393,7 @@
             // miConnectionLines
             // 
             this.miConnectionLines.Name = "miConnectionLines";
-            this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
+            this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.J)));
             this.miConnectionLines.Size = new System.Drawing.Size(189, 22);
             this.miConnectionLines.Text = "Connection &lines";
             this.miConnectionLines.Click += new System.EventHandler(this.toggleViewOption);
@@ -459,6 +462,13 @@
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
             // 
+            // unusedCtrlShortcuts
+            // 
+            this.unusedCtrlShortcuts.Name = "unusedCtrlShortcuts";
+            this.unusedCtrlShortcuts.Size = new System.Drawing.Size(197, 20);
+            this.unusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: bcefhpqrvxyz";
+            this.unusedCtrlShortcuts.Visible = false;
+            // 
             // Mainform
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -525,6 +535,7 @@
         private System.Windows.Forms.ToolStripMenuItem miColor;
         private System.Windows.Forms.ToolStripMenuItem miCoordinates;
         private System.Windows.Forms.ToolStripMenuItem miSetLabel;
+        private System.Windows.Forms.ToolStripMenuItem unusedCtrlShortcuts;
     }
 }
 

@@ -59,10 +59,6 @@
     <Compile Include="ZiimHelperProgram.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RT.Util\Src\RT.KitchenSink.csproj">
-      <Project>{7EDB80B5-CA44-4AD9-BF23-18A9470FEB69}</Project>
-      <Name>KitchenSink</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\RT.Util\Src\RT.Util.csproj">
       <Project>{8D0FE79C-AD8D-475C-9E6F-9CAE85365B5D}</Project>
       <Name>Util</Name>

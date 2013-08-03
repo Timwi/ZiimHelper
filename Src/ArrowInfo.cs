@@ -6,6 +6,7 @@ using System.Linq;
 using RT.Util;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
+using RT.Util.Serialization;
 using RT.Util.Xml;
 
 namespace ZiimHelper
@@ -28,6 +29,7 @@ namespace ZiimHelper
         public List<Item> Items = new List<Item>();
         public Color Color = Color.FromArgb(64, 64, 192, 255);
         public string Label;
+        public Point LabelFrom, LabelTo;
         public override IEnumerable<ArrowInfo> Arrows { get { return Items.SelectMany(item => item.Arrows); } }
         public override IEnumerable<Cloud> Clouds { get { return this.Concat(Items.SelectMany(i => i.Clouds)); } }
         public IEnumerable<Tuple<ArrowInfo, Cloud>> ArrowsWithParents
@@ -163,9 +165,9 @@ namespace ZiimHelper
     {
         public int X { get; set; }
         public int Y { get; set; }
-        [XmlIgnoreIfDefault]
+        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
         public bool Marked { get; set; }
-        [XmlIgnoreIfDefault]
+        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
         public string Annotation { get; set; }
         public string CoordsString { get { return "(" + X + ", " + Y + ")"; } }
         public abstract char Character { get; }
@@ -203,7 +205,7 @@ namespace ZiimHelper
     class SingleArrowInfo : ArrowInfo
     {
         public Direction Direction { get; set; }
-        [XmlIgnoreIfDefault]
+        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
         public bool IsTerminalArrow { get; set; }
         public override char Character { get { return IsTerminalArrow ? Direction.ToCharDouble() : Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (Direction) (((int) Direction + (clockwise ? 1 : 7)) % 8); }

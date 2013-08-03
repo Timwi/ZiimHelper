@@ -27,8 +27,11 @@ namespace ZiimHelper
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static int Main(string[] args)
         {
+            if (args.Length == 2 && args[0] == "--post-build-check")
+                return Ut.RunPostBuildChecks(args[1], Assembly.GetExecutingAssembly());
+
             SettingsUtil.LoadSettings(out ZiimHelperProgram.Settings);
 
             Application.EnableVisualStyles();
@@ -36,6 +39,7 @@ namespace ZiimHelper
             Application.Run(new Mainform());
 
             Settings.Save(onFailure: SettingsOnFailure.ShowRetryOnly);
+            return 0;
         }
     }
 }

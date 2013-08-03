@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using RT.Util;
+﻿using RT.Util;
 using RT.Util.Forms;
+using RT.Util.Serialization;
 
 namespace ZiimHelper
 {
@@ -22,5 +22,11 @@ namespace ZiimHelper
         public bool ViewCoordinates = true;
         public EditMode EditMode = EditMode.MoveSelect;
         public ManagedForm.Settings FormSettings = new ManagedForm.Settings();
+
+        private static void PostBuildCheck(IPostBuildReporter rep)
+        {
+            Classify.PostBuildStep(typeof(Settings), rep);
+            Classify.PostBuildStep(typeof(Cloud), rep);
+        }
     }
 }

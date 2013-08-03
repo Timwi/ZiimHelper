@@ -13,6 +13,7 @@ using RT.Util.Dialogs;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
+using RT.Util.Serialization;
 using RT.Util.Xml;
 
 namespace ZiimHelper
@@ -28,9 +29,12 @@ namespace ZiimHelper
         private FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
         private FontFamily _annotationFont = new FontFamily("Calibri");
 
+        private ClassifyOptions _classifyOptions = new ClassifyOptions();
+
         public Mainform()
             : base(ZiimHelperProgram.Settings.FormSettings)
         {
+            _classifyOptions.AddTypeOptions(typeof(Color), new ColorClassifyOptions());
             InitializeComponent();
             setUi();
             setMode(ZiimHelperProgram.Settings.EditMode);
@@ -171,19 +175,19 @@ namespace ZiimHelper
 
             foreach (var inf in _file.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
             {
-                var arr = inf.Item1;
+                var arrow = inf.Item1;
                 var parentCloud = inf.Item2;
-                var x = (arr.X - _paintMinX) * cellSize;
-                var y = (arr.Y - _paintMinY) * cellSize;
+                var x = (arrow.X - _paintMinX) * cellSize;
+                var y = (arrow.Y - _paintMinY) * cellSize;
 
-                if (miInstructions.Checked || arr.IsTerminal)
+                if (miInstructions.Checked || arrow.IsTerminal)
                 {
-                    var directions = !arr.IsTerminal && hitFromDic.ContainsKey(arr) ? hitFromDic[arr] : null;
+                    var directions = !arrow.IsTerminal && hitFromDic.ContainsKey(arrow) ? hitFromDic[arrow] : null;
                     string instruction = null;
                     Direction dir = 0;
-                    if (arr is SingleArrowInfo)
+                    if (arrow is SingleArrowInfo)
                     {
-                        var sai = (SingleArrowInfo) arr;
+                        var sai = (SingleArrowInfo) arrow;
                         dir = sai.Direction;
                         if (!sai.IsTerminal)
                         {
@@ -203,7 +207,7 @@ namespace ZiimHelper
                     }
                     else
                     {
-                        var dai = (DoubleArrowInfo) arr;
+                        var dai = (DoubleArrowInfo) arrow;
                         if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8))  // splitter
                         {
                             instruction = "S";
@@ -236,18 +240,18 @@ namespace ZiimHelper
                         }
                     }
 
-                    if (arr.IsTerminal)
+                    if (arrow.IsTerminal)
                     {
-                        if (arr.Annotation != null && ((miOwnCloud.Checked && parentCloud == _file) || (miInnerClouds.Checked && parentCloud != _file)))
+                        if (arrow.Annotation != null && ((miOwnCloud.Checked && parentCloud == _file) || (miInnerClouds.Checked && parentCloud != _file)))
                         {
                             var p = new[] { new Point(0, 0) };
                             g.Transform.TransformPoints(p);
                             using (var tr = new GraphicsTransformer(g).Translate(0, -cellSize / 4).RotateAt(45 * ((int) dir % 4 - 2), p[0]).Translate(x + cellSize / 2, y + cellSize / 2))
                             {
                                 g.DrawString(
-                                    arr.Annotation,
-                                    new Font(_annotationFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _annotationFont, arr.Annotation)),
-                                    arr.IsTerminal ? new SolidBrush(parentCloud.Color) : Brushes.Black,
+                                    arrow.Annotation,
+                                    new Font(_annotationFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _annotationFont, arrow.Annotation)),
+                                    arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : Brushes.Black,
                                     0, 0,
                                     new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
                                 );
@@ -378,7 +382,7 @@ namespace ZiimHelper
         {
             if (_filename == null)
                 return saveAs();
-            XmlClassify.SaveObjectToXmlFile(_file, _filename);
+            ClassifyXml.SerializeToFile(_file, _filename, _classifyOptions);
             _fileChanged = false;
             return true;
         }
@@ -800,7 +804,7 @@ namespace ZiimHelper
                 }
                 else
                 {
-                    _file = XmlClassify.LoadObjectFromXmlFile<Cloud>(filename);
+                    _file = ClassifyXml.DeserializeFile<Cloud>(filename, _classifyOptions);
                     _filename = filename;
                 }
             }

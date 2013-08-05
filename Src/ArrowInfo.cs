@@ -13,12 +13,14 @@ namespace ZiimHelper
 {
     abstract class Item
     {
-        public abstract IEnumerable<ArrowInfo> Arrows { get; }
-        public abstract IEnumerable<Cloud> Clouds { get; }
+        public abstract IEnumerable<Item> AllItems { get; }
+        public abstract IEnumerable<ArrowInfo> AllArrows { get; }
+        public abstract IEnumerable<Cloud> AllClouds { get; }
         public abstract void Move(int deltaX, int deltaY);
         public abstract void DrawSelected(Graphics g, int cellSize);
         public abstract bool IsContainedIn(int minX, int minY, int maxX, int maxY);
         public abstract void GetBounds(out int minX, out int maxX, out int minY, out int maxY);
+        public abstract Item ItemAt(int x, int y);
     }
 
     sealed class Cloud : Item
@@ -29,9 +31,10 @@ namespace ZiimHelper
         public List<Item> Items = new List<Item>();
         public Color Color = Color.FromArgb(64, 64, 192, 255);
         public string Label;
-        public Point LabelFrom, LabelTo;
-        public override IEnumerable<ArrowInfo> Arrows { get { return Items.SelectMany(item => item.Arrows); } }
-        public override IEnumerable<Cloud> Clouds { get { return this.Concat(Items.SelectMany(i => i.Clouds)); } }
+        public int LabelFromX, LabelFromY, LabelToX, LabelToY;
+        public override IEnumerable<Item> AllItems { get { return this.Concat(Items.SelectMany(item => item.AllItems)); } }
+        public override IEnumerable<ArrowInfo> AllArrows { get { return Items.SelectMany(item => item.AllArrows); } }
+        public override IEnumerable<Cloud> AllClouds { get { return this.Concat(Items.SelectMany(i => i.AllClouds)); } }
         public IEnumerable<Tuple<ArrowInfo, Cloud>> ArrowsWithParents
         {
             get
@@ -44,6 +47,10 @@ namespace ZiimHelper
         {
             foreach (var item in Items)
                 item.Move(deltaX, deltaY);
+            LabelFromX += deltaX;
+            LabelToX += deltaX;
+            LabelFromY += deltaY;
+            LabelToY += deltaY;
         }
         public override void GetBounds(out int minX, out int maxX, out int minY, out int maxY)
         {
@@ -66,8 +73,6 @@ namespace ZiimHelper
                     maxY = Math.Max(maxY, maY);
                 }
             }
-            if (Label != null)
-                maxY++;
         }
         public override void DrawSelected(Graphics g, int cellSize)
         {
@@ -83,12 +88,12 @@ namespace ZiimHelper
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular, bool constrainWidth = false)
         {
-            if (!Arrows.Any(a => !a.IsTerminal))
+            if (!AllArrows.Any(a => !a.IsTerminal))
                 return;
             int minX, maxX, minY, maxY;
             GetBounds(out minX, out maxX, out minY, out maxY);
             var taken = Ut.NewArray<bool>(maxX - minX + 1, maxY - minY + 1);
-            foreach (var arr in Arrows)
+            foreach (var arr in AllArrows)
             {
                 if (arr.IsTerminal)
                     continue;
@@ -107,7 +112,7 @@ namespace ZiimHelper
                             break;
                         }
                     }
-                    while (!Arrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
+                    while (!AllArrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
                     if (pointsToOutside)
                         continue;
 
@@ -118,7 +123,7 @@ namespace ZiimHelper
                         x += dir.XOffset();
                         y += dir.YOffset();
                     }
-                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !Arrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
+                    while (x >= minX && x <= maxX && y >= minY && y <= maxY && !AllArrows.Any(a => a.X == x && a.Y == y && !a.IsTerminal));
                 }
             }
 
@@ -139,17 +144,31 @@ namespace ZiimHelper
 
             if (fill)
             {
-                g.FillPath(new SolidBrush(Color.FromArgb(64, Color)), path);
                 if (Label != null)
                 {
-                    g.DrawString(
-                        Label,
-                        new Font(_cloudFont, g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: constrainWidth ? ((maxX - minX + 1) * cellSize) : (int?) null, maxHeight: cellSize), style),
-                        new SolidBrush(Color),
-                        new RectangleF(minX * cellSize, maxY * cellSize, (maxX - minX + 1) * cellSize, 0),
-                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near }
-                    );
+                    var distX = LabelToX - LabelFromX;
+                    var distY = LabelToY - LabelFromY;
+                    var dist = (float) (Math.Sqrt(distX * distX + distY * distY) * cellSize);
+
+                    if (dist > 0)
+                    {
+                        var centerPoint = new PointF((LabelFromX + LabelToX + 1) * cellSize / 2, (LabelFromY + LabelToY + 1) * cellSize / 2);
+                        var stringPath = new GraphicsPath();
+                        stringPath.AddString(
+                            Label,
+                            _cloudFont,
+                            (int) style,
+                            g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: dist) * g.DpiY / 72,
+                            centerPoint,
+                            new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                        );
+                        var rotate = new Matrix();
+                        rotate.RotateAt((float) (Math.Atan2(distY, distX) * 180 / Math.PI), centerPoint);
+                        stringPath.Transform(rotate);
+                        path.AddPath(stringPath, false);
+                    }
                 }
+                g.FillPath(new SolidBrush(Color.FromArgb(64, Color)), path);
             }
             if (outline != null)
                 g.DrawPath(outline, path);
@@ -158,6 +177,17 @@ namespace ZiimHelper
         public override bool IsContainedIn(int minX, int minY, int maxX, int maxY)
         {
             return Items.All(i => i.IsContainedIn(minX, minY, maxX, maxY));
+        }
+
+        public override Item ItemAt(int x, int y)
+        {
+            foreach (var item in Items.OrderByDescending(i => i is ArrowInfo))
+            {
+                var itemAt = item.ItemAt(x, y);
+                if (itemAt != null)
+                    return item;    // NOT itemAt
+            }
+            return null;
         }
     }
 
@@ -173,8 +203,10 @@ namespace ZiimHelper
         public abstract char Character { get; }
         public virtual bool IsTerminal { get { return false; } }
         public abstract IEnumerable<Direction> Directions { get; }
-        public override IEnumerable<ArrowInfo> Arrows { get { return new[] { this }; } }
-        public override IEnumerable<Cloud> Clouds { get { return Enumerable.Empty<Cloud>(); } }
+        public override IEnumerable<Item> AllItems { get { return new[] { this }; } }
+        public override IEnumerable<ArrowInfo> AllArrows { get { return new[] { this }; } }
+        public override IEnumerable<Cloud> AllClouds { get { return Enumerable.Empty<Cloud>(); } }
+        public override Item ItemAt(int x, int y) { return x == X && y == Y ? this : null; }
 
         public override void GetBounds(out int minX, out int maxX, out int minY, out int maxY)
         {

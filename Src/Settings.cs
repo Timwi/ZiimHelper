@@ -7,7 +7,8 @@ namespace ZiimHelper
     enum EditMode
     {
         MoveSelect,
-        Draw
+        Draw,
+        SetLabelPosition
     }
 
     [Settings("ZiimHelper", SettingsKind.UserSpecific)]
@@ -22,6 +23,10 @@ namespace ZiimHelper
         public bool ViewCoordinates = true;
         public EditMode EditMode = EditMode.MoveSelect;
         public ManagedForm.Settings FormSettings = new ManagedForm.Settings();
+
+        public int LastCopyImageFontSize = 24;
+        public int LastCopyImageWidth = 1000;
+        public int LastCopyImageHeight = 1000;
 
         private static void PostBuildCheck(IPostBuildReporter rep)
         {

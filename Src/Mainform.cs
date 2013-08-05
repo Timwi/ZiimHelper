@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using RT.Util;
 using RT.Util.Dialogs;
 using RT.Util.Drawing;
@@ -20,6 +21,8 @@ namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
+        private Cloud _editingCloud = new Cloud();
+        private Stack<Cloud> _outerClouds = new Stack<Cloud>();
         private Cloud _file = new Cloud();
         private string _filename = null;
         private bool _fileChanged = false;
@@ -31,21 +34,38 @@ namespace ZiimHelper
 
         private ClassifyOptions _classifyOptions = new ClassifyOptions();
 
+        private sealed class ModeInfo
+        {
+            public ToolStripMenuItem MenuItem { get; private set; }
+            public EditMode EditMode { get; private set; }
+            public ModeInfo(ToolStripMenuItem menuItem, EditMode editMode) { MenuItem = menuItem; EditMode = editMode; }
+        }
+        private ModeInfo[] _modes;
+
         public Mainform()
             : base(ZiimHelperProgram.Settings.FormSettings)
         {
-            _classifyOptions.AddTypeOptions(typeof(Color), new ColorClassifyOptions());
             InitializeComponent();
+
+            _classifyOptions.AddTypeOptions(typeof(Color), new ColorClassifyOptions());
+
+            _modes = Ut.NewArray(
+                new ModeInfo(miMoveSelect, EditMode.MoveSelect),
+                new ModeInfo(miDraw, EditMode.Draw),
+                new ModeInfo(miSetLabelPosition, EditMode.SetLabelPosition)
+            );
+
             setUi();
             setMode(ZiimHelperProgram.Settings.EditMode);
         }
 
-        private void deleteArrow(object _, EventArgs __)
+        private void deleteItem(object _, EventArgs __)
         {
             if (_selected.Count == 0)
                 return;
-            _file.Items.RemoveAll(_selected.Contains);
+            _editingCloud.Items.RemoveAll(_selected.Contains);
             _selected.Clear();
+            _fileChanged = true;
             refresh();
         }
 
@@ -76,6 +96,18 @@ namespace ZiimHelper
                 using (var tr = new GraphicsTransformer(e.Graphics).Translate(t.X, t.Y))
                     _arrowReorienting.DrawReorienting(e.Graphics, _paintCellSize);
             }
+            else if (miSetLabelPosition.Checked)
+            {
+                foreach (var pt in Ut.NewArray(
+                    new[] { _editingCloud.LabelFromX, _editingCloud.LabelFromY },
+                    new[] { _editingCloud.LabelToX, _editingCloud.LabelToY }
+                ))
+                {
+                    int x = pt[0] - _paintMinX, y = pt[1] - _paintMinY;
+                    var rect = new Rectangle(x * _paintCellSize + _paintTarget.Left, y * _paintCellSize + _paintTarget.Top, _paintCellSize, _paintCellSize);
+                    e.Graphics.DrawEllipse(new Pen(Brushes.Magenta, 3), rect);
+                }
+            }
         }
 
         private int _paintMinX;
@@ -91,10 +123,10 @@ namespace ZiimHelper
             var margin = 15;
 
             e.Graphics.Clear(Color.Gray);
-            if (_file.Items.Count < 1)
+            if (_editingCloud.Items.Count < 1)
                 return;
 
-            _file.GetBounds(out _paintMinX, out _paintMaxX, out _paintMinY, out _paintMaxY);
+            _editingCloud.GetBounds(out _paintMinX, out _paintMaxX, out _paintMinY, out _paintMaxY);
 
             var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);
@@ -126,19 +158,19 @@ namespace ZiimHelper
 
             if (miInnerClouds.Checked || miOwnCloud.Checked)
                 using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * cellSize, -_paintMinY * cellSize))
-                    foreach (var cloud in miInnerClouds.Checked ? _file.Clouds : new[] { _file })
-                        if (cloud != _file || miOwnCloud.Checked)
-                            cloud.DrawCloud(g, cellSize, cloud == _file);
+                    foreach (var cloud in miInnerClouds.Checked ? _editingCloud.AllClouds : new[] { _editingCloud })
+                        if (cloud != _editingCloud || miOwnCloud.Checked)
+                            cloud.DrawCloud(g, cellSize, cloud == _editingCloud);
 
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
-            foreach (var inf in _file.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
+            foreach (var inf in _editingCloud.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
             {
                 var arr = inf.Item1;
                 var parentCloud = inf.Item2;
 
-                if ((!arr.IsTerminal || parentCloud != _file || miOwnCloud.Checked) &&
-                    (!arr.IsTerminal || parentCloud == _file || miInnerClouds.Checked))
+                if ((!arr.IsTerminal || parentCloud != _editingCloud || miOwnCloud.Checked) &&
+                    (!arr.IsTerminal || parentCloud == _editingCloud || miInnerClouds.Checked))
                     g.DrawString(
                         arr.Character.ToString(),
                         new Font(_arrowFont, fontSize),
@@ -153,7 +185,7 @@ namespace ZiimHelper
                 if (miAnnotations.Checked && arr.Annotation != null && !arr.IsTerminal)
                     drawInRoundedRectangle(g, arr.Annotation, new PointF((arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
 
-                if (!arr.IsTerminal || parentCloud == _file)
+                if (!arr.IsTerminal || parentCloud == _editingCloud)
                 {
                     foreach (var dir in arr.Directions)
                     {
@@ -173,7 +205,7 @@ namespace ZiimHelper
                 }
             }
 
-            foreach (var inf in _file.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
+            foreach (var inf in _editingCloud.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
             {
                 var arrow = inf.Item1;
                 var parentCloud = inf.Item2;
@@ -242,7 +274,7 @@ namespace ZiimHelper
 
                     if (arrow.IsTerminal)
                     {
-                        if (arrow.Annotation != null && ((miOwnCloud.Checked && parentCloud == _file) || (miInnerClouds.Checked && parentCloud != _file)))
+                        if (arrow.Annotation != null && ((miOwnCloud.Checked && parentCloud == _editingCloud) || (miInnerClouds.Checked && parentCloud != _editingCloud)))
                         {
                             var p = new[] { new Point(0, 0) };
                             g.Transform.TransformPoints(p);
@@ -272,7 +304,7 @@ namespace ZiimHelper
             }
 
             StringFormat sf = null;
-            foreach (var pair in _file.Arrows.UniquePairs())
+            foreach (var pair in _editingCloud.AllArrows.UniquePairs())
                 if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y && pair.Item1.IsTerminal == pair.Item2.IsTerminal)
                     g.DrawString("!!!", new Font(_arrowFont, fontSize, FontStyle.Italic), Brushes.Red,
                         cellSize * (pair.Item1.X - _paintMinX) + cellSize / 2, cellSize * (pair.Item1.Y - _paintMinY) + cellSize / 2,
@@ -285,7 +317,7 @@ namespace ZiimHelper
             {
                 x += xOffset;
                 y += yOffset;
-                var found = _file.Arrows.FirstOrDefault(arrow => !arrow.IsTerminal && arrow.X == x && arrow.Y == y);
+                var found = _editingCloud.AllArrows.FirstOrDefault(arrow => !arrow.IsTerminal && arrow.X == x && arrow.Y == y);
                 if (found != null)
                     return found;
             }
@@ -317,12 +349,12 @@ namespace ZiimHelper
                 return;
             }
 
-            var minX = _selected.SelectMany(itm => itm.Arrows).Min(a => a.X);
-            var minY = _selected.SelectMany(itm => itm.Arrows).Min(a => a.Y);
-            var maxX = _selected.SelectMany(itm => itm.Arrows).Max(a => a.X);
-            var maxY = _selected.SelectMany(itm => itm.Arrows).Max(a => a.Y);
+            var minX = _selected.SelectMany(itm => itm.AllArrows).Min(a => a.X);
+            var minY = _selected.SelectMany(itm => itm.AllArrows).Min(a => a.Y);
+            var maxX = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.X);
+            var maxY = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.Y);
 
-            foreach (var arrow in _selected.SelectMany(itm => itm.Arrows))
+            foreach (var arrow in _selected.SelectMany(itm => itm.AllArrows))
             {
                 var x = arrow.X - minX;
                 var y = arrow.Y - minY;
@@ -409,20 +441,8 @@ namespace ZiimHelper
             }
         }
 
-        private void move(object sender, EventArgs __)
-        {
-            var xOffset = sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0;
-            var yOffset = sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0;
-            foreach (var arrow in _selected.SelectMany(item => item.Arrows))
-            {
-                arrow.X += xOffset;
-                arrow.Y += yOffset;
-            }
-            _fileChanged = true;
-            refresh();
-        }
-
         private bool _draggingSelectionRectangle;
+        private bool _draggingLabelPosition;
         private Point _mouseDown;
         private Point _mouseDraggedTo;
         private Item _mouseMoving;
@@ -434,9 +454,9 @@ namespace ZiimHelper
             var y = _paintCellSize == 0 ? 0 : divRoundDown(e.Y - _paintTarget.Top, _paintCellSize) + _paintMinY;
             _mouseDown = _mouseDraggedTo = new Point(x, y);
 
-            var clickedOn = _file.Items.FirstOrDefault(item => item.Arrows.Any(arr => arr.X == x && arr.Y == y));
+            var clickedOn = _editingCloud.ItemAt(x, y);
 
-            if (miMoveSelect.Checked && clickedOn != null && !Ut.Ctrl)
+            if (miMoveSelect.Checked && clickedOn != null && !Ut.Ctrl && !Ut.Shift)
             {
                 if (!_selected.Contains(clickedOn) && !Ut.Shift)
                     _selected.Clear();
@@ -462,11 +482,21 @@ namespace ZiimHelper
                 else
                 {
                     _arrowReorienting = Ut.Shift ? (ArrowInfo) new DoubleArrowInfo { X = x, Y = y } : new SingleArrowInfo { X = x, Y = y };
-                    _file.Items.Add(_arrowReorienting);
+                    _editingCloud.Items.Add(_arrowReorienting);
                     _selected.Clear();
                     _selected.Add(_arrowReorienting);
                     refresh();
                 }
+            }
+            else if (miSetLabelPosition.Checked)
+            {
+                _fileChanged = true;
+                _draggingLabelPosition = true;
+                _editingCloud.LabelFromX = x;
+                _editingCloud.LabelFromY = y;
+                _editingCloud.LabelToX = x;
+                _editingCloud.LabelToY = y;
+                refresh();
             }
         }
 
@@ -487,12 +517,21 @@ namespace ZiimHelper
             var y = _paintCellSize == 0 ? 0 : divRoundDown(e.Y - _paintTarget.Top, _paintCellSize) + _paintMinY;
             if (x == _mouseDraggedTo.X && y == _mouseDraggedTo.Y)
                 return;
+
+            if (_draggingLabelPosition)
+            {
+                _editingCloud.LabelToX = x;
+                _editingCloud.LabelToY = y;
+                refresh();
+                return;
+            }
+
             var deltaX = x - _mouseDraggedTo.X;
             var deltaY = y - _mouseDraggedTo.Y;
             _mouseDraggedTo = new Point(x, y);
 
             if (miMoveSelect.Checked)
-                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && _file.Arrows.Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
+                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && !Ut.Shift && _editingCloud.AllArrows.Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
 
             if (_draggingSelectionRectangle)
                 ctImage.Invalidate();
@@ -518,18 +557,24 @@ namespace ZiimHelper
 
         private void mouseUp(object sender, MouseEventArgs e)
         {
+            _draggingLabelPosition = false;
             if (_draggingSelectionRectangle)
             {
                 if (!Ut.Shift)
                     _selected.Clear();
 
-                foreach (var item in _file.Items.Where(item => item.IsContainedIn(
-                    Math.Min(_mouseDown.X, _mouseDraggedTo.X),
-                    Math.Min(_mouseDown.Y, _mouseDraggedTo.Y),
-                    Math.Max(_mouseDown.X, _mouseDraggedTo.X),
-                    Math.Max(_mouseDown.Y, _mouseDraggedTo.Y))))
-                    _selected.Add(item);
-
+                Item alreadyItem;
+                if (_mouseDown.X == _mouseDraggedTo.X && _mouseDown.Y == _mouseDraggedTo.Y && (alreadyItem = _editingCloud.ItemAt(_mouseDraggedTo.X, _mouseDraggedTo.Y)) != null && _selected.Contains(alreadyItem))
+                    _selected.Remove(alreadyItem);
+                else
+                {
+                    foreach (var item in _editingCloud.Items.Where(item => item.IsContainedIn(
+                        Math.Min(_mouseDown.X, _mouseDraggedTo.X),
+                        Math.Min(_mouseDown.Y, _mouseDraggedTo.Y),
+                        Math.Max(_mouseDown.X, _mouseDraggedTo.X),
+                        Math.Max(_mouseDown.Y, _mouseDraggedTo.Y))))
+                        _selected.Add(item);
+                }
                 _draggingSelectionRectangle = false;
                 ctImage.Invalidate();
             }
@@ -575,7 +620,7 @@ namespace ZiimHelper
 
         private void toggleMark(object sender, EventArgs e)
         {
-            foreach (var arrow in _selected.SelectMany(itm => itm.Arrows))
+            foreach (var arrow in _selected.SelectMany(itm => itm.AllArrows))
                 arrow.Marked = !arrow.Marked;
             _fileChanged = true;
             refresh();
@@ -583,19 +628,19 @@ namespace ZiimHelper
 
         private void copySource(object sender, EventArgs e)
         {
-            if (_file.Items.Count == 0)
+            if (_editingCloud.Items.Count == 0)
             {
                 Clipboard.SetText("");
                 return;
             }
 
-            var minX = _file.Arrows.Min(a => a.X);
-            var minY = _file.Arrows.Min(a => a.Y);
-            var maxX = _file.Arrows.Max(a => a.X);
-            var maxY = _file.Arrows.Max(a => a.Y);
+            var minX = _editingCloud.AllArrows.Min(a => a.X);
+            var minY = _editingCloud.AllArrows.Min(a => a.Y);
+            var maxX = _editingCloud.AllArrows.Max(a => a.X);
+            var maxY = _editingCloud.AllArrows.Max(a => a.Y);
 
             var arr = Ut.NewArray<char>(maxY - minY + 1, maxX - minX + 1, (i, j) => ' ');
-            foreach (var arrow in _file.Arrows)
+            foreach (var arrow in _editingCloud.AllArrows)
                 if (!arrow.IsTerminal)
                     arr[arrow.Y - minY][arrow.X - minX] = arrow.Character;
             Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
@@ -609,9 +654,9 @@ namespace ZiimHelper
                 sender == miCopyImageByWidth ? "Specify the desired bitmap width:" :
                 sender == miCopyImageByHeight ? "Specify the desired bitmap height:" : Ut.Throw<string>(new InvalidOperationException()),
 
-                sender == miCopyImageByFont ? "24" :
-                sender == miCopyImageByWidth ? "1000" :
-                sender == miCopyImageByHeight ? "1000" : Ut.Throw<string>(new InvalidOperationException()),
+                (sender == miCopyImageByFont ? ZiimHelperProgram.Settings.LastCopyImageFontSize :
+                sender == miCopyImageByWidth ? ZiimHelperProgram.Settings.LastCopyImageWidth :
+                sender == miCopyImageByHeight ? ZiimHelperProgram.Settings.LastCopyImageHeight : Ut.Throw<int>(new InvalidOperationException())).ToString(),
 
                 "Copy image", "&OK", "&Cancel"
             );
@@ -626,7 +671,15 @@ namespace ZiimHelper
                 return;
             }
 
-            if (_file.Items.Count == 0)
+            if (sender == miCopyImageByFont)
+                ZiimHelperProgram.Settings.LastCopyImageFontSize = input;
+            else if (sender == miCopyImageByWidth)
+                ZiimHelperProgram.Settings.LastCopyImageWidth = input;
+            else if (sender == miCopyImageByHeight)
+                ZiimHelperProgram.Settings.LastCopyImageHeight = input;
+            ZiimHelperProgram.Settings.SaveQuiet();
+
+            if (_editingCloud.Items.Count == 0)
             {
                 using (var tmpBmp = new Bitmap(1, 1, PixelFormat.Format32bppArgb))
                     Clipboard.SetImage(tmpBmp);
@@ -677,11 +730,11 @@ namespace ZiimHelper
 
         private void annotate(object sender, EventArgs e)
         {
-            var annotation = _selected.SelectMany(itm => itm.Arrows).Select(arr => arr.Annotation).JoinString();
+            var annotation = _selected.SelectMany(itm => itm.AllArrows).Select(arr => arr.Annotation).JoinString();
             var newAnnotation = InputBox.GetLine("Annotation:", annotation, "Annotation", "&OK", "&Cancel");
             if (newAnnotation != null)
             {
-                foreach (var arr in _selected.SelectMany(itm => itm.Arrows))
+                foreach (var arr in _selected.SelectMany(itm => itm.AllArrows))
                 {
                     arr.Annotation = string.IsNullOrWhiteSpace(newAnnotation) ? null : newAnnotation;
                     _fileChanged = true;
@@ -699,15 +752,8 @@ namespace ZiimHelper
 
         private void setMode(EditMode mode)
         {
-            foreach (var tup in Ut.NewArray(
-                Tuple.Create(miMoveSelect, EditMode.MoveSelect, true),
-                Tuple.Create(miDraw, EditMode.Draw, true)
-            ))
-            {
-                var thisOne = mode == tup.Item2;
-                tup.Item1.Checked = thisOne;
-                tup.Item1.Visible = tup.Item3 || thisOne;
-            }
+            foreach (var inf in _modes)
+                inf.MenuItem.Checked = (mode == inf.EditMode);
             setCursor();
         }
 
@@ -715,25 +761,26 @@ namespace ZiimHelper
         {
             if (miMoveSelect.Checked)
             {
-                if (Ut.Ctrl)
+                if (Ut.Ctrl || Ut.Shift)
                     ctImage.Cursor = Cursors.Default;
                 else
                 {
                     var mousePosition = ctImage.PointToClient(Control.MousePosition);
                     var x = _paintCellSize == 0 ? 0 : (mousePosition.X - _paintTarget.Left) / _paintCellSize + _paintMinX;
                     var y = _paintCellSize == 0 ? 0 : (mousePosition.Y - _paintTarget.Top) / _paintCellSize + _paintMinY;
-                    ctImage.Cursor = _file.Arrows.Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
+                    ctImage.Cursor = _editingCloud.AllArrows.Any(a => a.X == x && a.Y == y) ? Cursors.SizeAll : Cursors.Default;
                 }
             }
             else if (miDraw.Checked)
                 ctImage.Cursor = Cursors.Cross;
+            else if (miSetLabelPosition.Checked)
+                ctImage.Cursor = Cursors.Hand;
         }
 
         private void switchMode(object sender, EventArgs __)
         {
-            setMode(
-                sender == miMoveSelect ? EditMode.MoveSelect :
-                sender == miDraw ? EditMode.Draw : Ut.Throw<EditMode>(new InvalidOperationException()));
+            setMode(_modes.First(inf => sender == inf.MenuItem).EditMode);
+            refresh();
         }
 
         private void fileNew(object _, EventArgs __)
@@ -742,6 +789,8 @@ namespace ZiimHelper
                 return;
             _filename = null;
             _file = new Cloud();
+            _editingCloud = new Cloud();
+            _outerClouds.Clear();
             _selected.Clear();
             _fileChanged = false;
             refresh();
@@ -807,6 +856,8 @@ namespace ZiimHelper
                     _file = ClassifyXml.DeserializeFile<Cloud>(filename, _classifyOptions);
                     _filename = filename;
                 }
+                _editingCloud = _file;
+                _outerClouds.Clear();
             }
             catch (Exception e)
             {
@@ -844,9 +895,49 @@ namespace ZiimHelper
             Application.Exit();
         }
 
+        private void move(object sender, EventArgs __)
+        {
+            var xOffset = sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0;
+            var yOffset = sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0;
+            foreach (var item in _selected)
+                item.Move(xOffset, yOffset);
+            _fileChanged = true;
+            refresh();
+        }
+
         private void previewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
             setCursor();
+
+            if (e.KeyData == Keys.Back)
+            {
+                backToOuterCloud();
+                return;
+            }
+
+            var xOffset = e.KeyData == Keys.Left ? -1 : e.KeyData == Keys.Right ? 1 : 0;
+            var yOffset = e.KeyData == Keys.Up ? -1 : e.KeyData == Keys.Down ? 1 : 0;
+            if (xOffset != 0 || yOffset != 0)
+            {
+                foreach (var item in _selected)
+                    item.Move(xOffset, yOffset);
+                _fileChanged = true;
+                refresh();
+            }
+        }
+
+        private void backToOuterCloud(object _ = null, EventArgs __ = null)
+        {
+            if (_outerClouds.Count == 0)
+            {
+                DlgMessage.Show("You are already at the top level.", "Back to outer cloud", DlgType.Info);
+                return;
+            }
+
+            _selected.Clear();
+            _selected.Add(_editingCloud);
+            _editingCloud = _outerClouds.Pop();
+            refresh();
         }
 
         private void keyUp(object sender, KeyEventArgs e)
@@ -879,20 +970,21 @@ namespace ZiimHelper
                     return;
                 }
                 jiggle(file);
-                _file.Items.Add(file);
+                _editingCloud.Items.Add(file);
+                _selected.Clear();
                 _selected.Add(file);
                 _fileChanged = true;
                 refresh();
             }
         }
 
-        private void jiggle(Item item)
+        private void jiggle(params Item[] items)
         {
             var squaresTaken = new Dictionary<int, HashSet<int>>();
-            foreach (var arrow in _file.Arrows)
+            foreach (var arrow in _editingCloud.AllArrows)
                 squaresTaken.AddSafe(arrow.X, arrow.Y);
             int radius = 0, px = 0, py = 0;
-            while (item.Arrows.Any(arr => squaresTaken.Contains(arr.X, arr.Y)))
+            while (items.SelectMany(item => item.AllArrows).Any(arr => squaresTaken.Contains(arr.X, arr.Y)))
             {
                 int x = px, y = px;
                 if (x == radius)
@@ -911,11 +1003,8 @@ namespace ZiimHelper
                 }
                 else
                     x++;
-                foreach (var arr in item.Arrows)
-                {
-                    arr.X += x - px;
-                    arr.Y += y - py;
-                }
+                foreach (var item in items)
+                    item.Move(x - px, y - py);
                 px = x;
                 py = y;
             }
@@ -935,25 +1024,68 @@ namespace ZiimHelper
 
         private void cloudColor(object _, EventArgs __)
         {
-            using (var dlg = new ColorDialog { Color = _file.Color })
+            using (var dlg = new ColorDialog { Color = _editingCloud.Color })
             {
                 var result = dlg.ShowDialog();
                 if (result == DialogResult.Cancel)
                     return;
-                _file.Color = dlg.Color;
+                _editingCloud.Color = dlg.Color;
                 _fileChanged = true;
-                refresh();
+                ctImage.Invalidate();
             }
         }
 
         private void setLabel(object _, EventArgs __)
         {
-            var text = InputBox.GetLine("Enter text:", _file.Label ?? "");
+            var text = InputBox.GetLine("Enter text:", _editingCloud.Label ?? "", useMultilineBox: true);
             if (text != null)
             {
-                _file.Label = string.IsNullOrEmpty(text) ? null : text;
+                _editingCloud.Label = string.IsNullOrEmpty(text) ? null : text;
                 _fileChanged = true;
                 refresh();
+            }
+        }
+
+        private void editInnerCloud(object sender, EventArgs e)
+        {
+            Cloud newEditingCloud;
+            if (_selected.Count != 1 || (newEditingCloud = _selected.First() as Cloud) == null)
+                return;
+
+            _outerClouds.Push(_editingCloud);
+            _editingCloud = newEditingCloud;
+            _selected.Clear();
+            refresh();
+        }
+
+        private void cutOrCopy(object sender, EventArgs __)
+        {
+            if (_selected.Count > 0)
+                Clipboard.SetText(ClassifyXml.Serialize(_selected.ToArray(), _classifyOptions).ToString());
+            if (sender == miCut)
+            {
+                _editingCloud.Items.RemoveAll(_selected.Contains);
+                _selected.Clear();
+                _fileChanged = true;
+                refresh();
+            }
+        }
+
+        private void paste(object _, EventArgs __)
+        {
+            try
+            {
+                var clipboard = ClassifyXml.Deserialize<Item[]>(XElement.Parse(Clipboard.GetText()));
+                jiggle(clipboard);
+                _editingCloud.Items.AddRange(clipboard);
+                _selected.Clear();
+                _selected.AddRange(clipboard);
+                _fileChanged = true;
+                refresh();
+            }
+            catch (Exception e)
+            {
+                DlgMessage.Show("The contents of the clipboard cannot be pasted:{0}{0}{1}".Fmt(Environment.NewLine, e.Message), "Paste", DlgType.Error);
             }
         }
     }

@@ -54,13 +54,10 @@
             this.miImport = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
-            this.mnuArrow = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.miToggleInput = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep2 = new System.Windows.Forms.ToolStripSeparator();
             this.miAnnotate = new System.Windows.Forms.ToolStripMenuItem();
-            this.mnuCloud = new System.Windows.Forms.ToolStripMenuItem();
-            this.miColor = new System.Windows.Forms.ToolStripMenuItem();
-            this.miSetLabel = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuView = new System.Windows.Forms.ToolStripMenuItem();
             this.miGrid = new System.Windows.Forms.ToolStripMenuItem();
             this.miConnectionLines = new System.Windows.Forms.ToolStripMenuItem();
@@ -72,7 +69,19 @@
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
-            this.unusedCtrlShortcuts = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSetLabelPosition = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuUnusedCtrlShortcuts = new System.Windows.Forms.ToolStripMenuItem();
+            this.miArrowsOnly = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep5 = new System.Windows.Forms.ToolStripSeparator();
+            this.miCloudsOnly = new System.Windows.Forms.ToolStripMenuItem();
+            this.miColor = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSetLabel = new System.Windows.Forms.ToolStripMenuItem();
+            this.miBackToOuter = new System.Windows.Forms.ToolStripMenuItem();
+            this.miEditMnemonics = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep6 = new System.Windows.Forms.ToolStripSeparator();
+            this.miCopy = new System.Windows.Forms.ToolStripMenuItem();
+            this.miCut = new System.Windows.Forms.ToolStripMenuItem();
+            this.miPaste = new System.Windows.Forms.ToolStripMenuItem();
             this.ctMenu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -80,81 +89,77 @@
             // 
             this.miDeleteArrow.Name = "miDeleteArrow";
             this.miDeleteArrow.ShortcutKeys = System.Windows.Forms.Keys.Delete;
-            this.miDeleteArrow.Size = new System.Drawing.Size(242, 22);
-            this.miDeleteArrow.Text = "&Delete arrow";
-            this.miDeleteArrow.Click += new System.EventHandler(this.deleteArrow);
+            this.miDeleteArrow.Size = new System.Drawing.Size(258, 22);
+            this.miDeleteArrow.Text = "&Delete";
+            this.miDeleteArrow.Click += new System.EventHandler(this.deleteItem);
             // 
             // miMoveUp
             // 
             this.miMoveUp.Name = "miMoveUp";
-            this.miMoveUp.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Up)));
-            this.miMoveUp.Size = new System.Drawing.Size(242, 22);
-            this.miMoveUp.Text = "Move &up";
+            this.miMoveUp.ShortcutKeyDisplayString = "Up";
+            this.miMoveUp.Size = new System.Drawing.Size(258, 22);
+            this.miMoveUp.Text = "&Move up";
             this.miMoveUp.Click += new System.EventHandler(this.move);
             // 
             // miMoveDown
             // 
             this.miMoveDown.Name = "miMoveDown";
-            this.miMoveDown.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Down)));
-            this.miMoveDown.Size = new System.Drawing.Size(242, 22);
+            this.miMoveDown.ShortcutKeyDisplayString = "Down";
+            this.miMoveDown.Size = new System.Drawing.Size(258, 22);
             this.miMoveDown.Text = "Mo&ve down";
             this.miMoveDown.Click += new System.EventHandler(this.move);
             // 
             // miMoveLeft
             // 
             this.miMoveLeft.Name = "miMoveLeft";
-            this.miMoveLeft.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Left)));
-            this.miMoveLeft.Size = new System.Drawing.Size(242, 22);
-            this.miMoveLeft.Text = "Move &left";
+            this.miMoveLeft.ShortcutKeyDisplayString = "Left";
+            this.miMoveLeft.Size = new System.Drawing.Size(258, 22);
+            this.miMoveLeft.Text = "Move le&ft";
             this.miMoveLeft.Click += new System.EventHandler(this.move);
             // 
             // miMoveRight
             // 
             this.miMoveRight.Name = "miMoveRight";
-            this.miMoveRight.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.Right)));
-            this.miMoveRight.Size = new System.Drawing.Size(242, 22);
+            this.miMoveRight.ShortcutKeyDisplayString = "Right";
+            this.miMoveRight.Size = new System.Drawing.Size(258, 22);
             this.miMoveRight.Text = "Move rig&ht";
             this.miMoveRight.Click += new System.EventHandler(this.move);
             // 
             // miRotateClockwise
             // 
             this.miRotateClockwise.Name = "miRotateClockwise";
-            this.miRotateClockwise.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Right)));
-            this.miRotateClockwise.Size = new System.Drawing.Size(242, 22);
+            this.miRotateClockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Right)));
+            this.miRotateClockwise.Size = new System.Drawing.Size(258, 22);
             this.miRotateClockwise.Text = "&Rotate clockwise";
             this.miRotateClockwise.Click += new System.EventHandler(this.rotate);
             // 
             // miRotateCounterclockwise
             // 
             this.miRotateCounterclockwise.Name = "miRotateCounterclockwise";
-            this.miRotateCounterclockwise.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Left)));
-            this.miRotateCounterclockwise.Size = new System.Drawing.Size(242, 22);
+            this.miRotateCounterclockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Left)));
+            this.miRotateCounterclockwise.Size = new System.Drawing.Size(258, 22);
             this.miRotateCounterclockwise.Text = "Rotate counter-clock&wise";
             this.miRotateCounterclockwise.Click += new System.EventHandler(this.rotate);
             // 
             // miMark
             // 
             this.miMark.Name = "miMark";
-            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
-            this.miMark.Size = new System.Drawing.Size(242, 22);
+            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
+            this.miMark.Size = new System.Drawing.Size(258, 22);
             this.miMark.Text = "Toggle mar&k";
             this.miMark.Click += new System.EventHandler(this.toggleMark);
             // 
             // miSep1
             // 
             this.miSep1.Name = "miSep1";
-            this.miSep1.Size = new System.Drawing.Size(304, 6);
+            this.miSep1.Size = new System.Drawing.Size(325, 6);
             // 
             // miCopySource
             // 
             this.miCopySource.Name = "miCopySource";
-            this.miCopySource.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.C)));
-            this.miCopySource.Size = new System.Drawing.Size(307, 22);
+            this.miCopySource.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.C)));
+            this.miCopySource.Size = new System.Drawing.Size(328, 22);
             this.miCopySource.Text = "Copy &program to clipboard as text";
             this.miCopySource.Click += new System.EventHandler(this.copySource);
             // 
@@ -165,37 +170,37 @@
             this.miCopyImageByWidth,
             this.miCopyImageByHeight});
             this.miCopyImage.Name = "miCopyImage";
-            this.miCopyImage.Size = new System.Drawing.Size(307, 22);
+            this.miCopyImage.Size = new System.Drawing.Size(328, 22);
             this.miCopyImage.Text = "&Copy program to clipboard as image";
             // 
             // miCopyImageByFont
             // 
             this.miCopyImageByFont.Name = "miCopyImageByFont";
-            this.miCopyImageByFont.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.C)));
-            this.miCopyImageByFont.Size = new System.Drawing.Size(250, 22);
+            this.miCopyImageByFont.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.C)));
+            this.miCopyImageByFont.Size = new System.Drawing.Size(260, 22);
             this.miCopyImageByFont.Text = "... using fixed &font size";
             this.miCopyImageByFont.Click += new System.EventHandler(this.copyImage);
             // 
             // miCopyImageByWidth
             // 
             this.miCopyImageByWidth.Name = "miCopyImageByWidth";
-            this.miCopyImageByWidth.Size = new System.Drawing.Size(250, 22);
+            this.miCopyImageByWidth.Size = new System.Drawing.Size(260, 22);
             this.miCopyImageByWidth.Text = "... using fixed bitmap &width";
             this.miCopyImageByWidth.Click += new System.EventHandler(this.copyImage);
             // 
             // miCopyImageByHeight
             // 
             this.miCopyImageByHeight.Name = "miCopyImageByHeight";
-            this.miCopyImageByHeight.Size = new System.Drawing.Size(250, 22);
+            this.miCopyImageByHeight.Size = new System.Drawing.Size(260, 22);
             this.miCopyImageByHeight.Text = "... using fixed bitmap &height";
             this.miCopyImageByHeight.Click += new System.EventHandler(this.copyImage);
             // 
             // miSave
             // 
             this.miSave.Name = "miSave";
-            this.miSave.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
-            this.miSave.Size = new System.Drawing.Size(307, 22);
+            this.miSave.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
+            this.miSave.Size = new System.Drawing.Size(328, 22);
             this.miSave.Text = "&Save";
             this.miSave.Click += new System.EventHandler(this.save);
             // 
@@ -203,7 +208,7 @@
             // 
             this.miRevert.Name = "miRevert";
             this.miRevert.ShortcutKeys = System.Windows.Forms.Keys.F5;
-            this.miRevert.Size = new System.Drawing.Size(307, 22);
+            this.miRevert.Size = new System.Drawing.Size(328, 22);
             this.miRevert.Text = "Re&vert";
             this.miRevert.Click += new System.EventHandler(this.revert);
             // 
@@ -217,6 +222,7 @@
             this.ctImage.TabIndex = 0;
             this.ctImage.PaintBuffer += new System.Windows.Forms.PaintEventHandler(this.paintBuffer);
             this.ctImage.Paint += new System.Windows.Forms.PaintEventHandler(this.paint);
+            this.ctImage.DoubleClick += new System.EventHandler(this.editInnerCloud);
             this.ctImage.MouseDown += new System.Windows.Forms.MouseEventHandler(this.mouseDown);
             this.ctImage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.mouseMove);
             this.ctImage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.mouseUp);
@@ -225,11 +231,10 @@
             // 
             this.ctMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuProgram,
-            this.mnuArrow,
-            this.mnuCloud,
+            this.mnuEdit,
             this.mnuView,
             this.mnuMode,
-            this.unusedCtrlShortcuts});
+            this.mnuUnusedCtrlShortcuts});
             this.ctMenu.Location = new System.Drawing.Point(0, 0);
             this.ctMenu.Name = "ctMenu";
             this.ctMenu.Size = new System.Drawing.Size(716, 24);
@@ -252,121 +257,108 @@
             this.miSep3,
             this.miExit});
             this.mnuProgram.Name = "mnuProgram";
-            this.mnuProgram.Size = new System.Drawing.Size(59, 20);
+            this.mnuProgram.Size = new System.Drawing.Size(65, 20);
             this.mnuProgram.Text = "&Program";
             // 
             // miNew
             // 
             this.miNew.Name = "miNew";
-            this.miNew.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-            this.miNew.Size = new System.Drawing.Size(307, 22);
+            this.miNew.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
+            this.miNew.Size = new System.Drawing.Size(328, 22);
             this.miNew.Text = "&New";
             this.miNew.Click += new System.EventHandler(this.fileNew);
             // 
             // miOpen
             // 
             this.miOpen.Name = "miOpen";
-            this.miOpen.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.miOpen.Size = new System.Drawing.Size(307, 22);
+            this.miOpen.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
+            this.miOpen.Size = new System.Drawing.Size(328, 22);
             this.miOpen.Text = "&Open...";
             this.miOpen.Click += new System.EventHandler(this.open);
             // 
             // miSaveAs
             // 
             this.miSaveAs.Name = "miSaveAs";
-            this.miSaveAs.ShortcutKeys = ((System.Windows.Forms.Keys) (((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift)
-                        | System.Windows.Forms.Keys.S)));
-            this.miSaveAs.Size = new System.Drawing.Size(307, 22);
+            this.miSaveAs.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.S)));
+            this.miSaveAs.Size = new System.Drawing.Size(328, 22);
             this.miSaveAs.Text = "Save &As...";
             this.miSaveAs.Click += new System.EventHandler(this.saveAs);
             // 
             // miSep4
             // 
             this.miSep4.Name = "miSep4";
-            this.miSep4.Size = new System.Drawing.Size(304, 6);
+            this.miSep4.Size = new System.Drawing.Size(325, 6);
             // 
             // miImport
             // 
             this.miImport.Name = "miImport";
-            this.miImport.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
-            this.miImport.Size = new System.Drawing.Size(307, 22);
+            this.miImport.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.miImport.Size = new System.Drawing.Size(328, 22);
             this.miImport.Text = "&Import...";
             this.miImport.Click += new System.EventHandler(this.import);
             // 
             // miSep3
             // 
             this.miSep3.Name = "miSep3";
-            this.miSep3.Size = new System.Drawing.Size(304, 6);
+            this.miSep3.Size = new System.Drawing.Size(325, 6);
             // 
             // miExit
             // 
             this.miExit.Name = "miExit";
-            this.miExit.Size = new System.Drawing.Size(307, 22);
+            this.miExit.Size = new System.Drawing.Size(328, 22);
             this.miExit.Text = "E&xit";
             this.miExit.Click += new System.EventHandler(this.exit);
             // 
-            // mnuArrow
+            // mnuEdit
             // 
-            this.mnuArrow.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mnuEdit.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.miCut,
+            this.miCopy,
+            this.miPaste,
+            this.miDeleteArrow,
+            this.miSep6,
             this.miMoveUp,
             this.miMoveDown,
             this.miMoveLeft,
             this.miMoveRight,
             this.miRotateClockwise,
             this.miRotateCounterclockwise,
-            this.miDeleteArrow,
-            this.miToggleInput,
             this.miSep2,
+            this.miArrowsOnly,
+            this.miToggleInput,
             this.miMark,
-            this.miAnnotate});
-            this.mnuArrow.Name = "mnuArrow";
-            this.mnuArrow.Size = new System.Drawing.Size(48, 20);
-            this.mnuArrow.Text = "&Arrow";
+            this.miAnnotate,
+            this.miSep5,
+            this.miCloudsOnly,
+            this.miColor,
+            this.miSetLabel,
+            this.miBackToOuter,
+            this.miEditMnemonics});
+            this.mnuEdit.Name = "mnuEdit";
+            this.mnuEdit.Size = new System.Drawing.Size(39, 20);
+            this.mnuEdit.Text = "&Edit";
             // 
             // miToggleInput
             // 
             this.miToggleInput.Name = "miToggleInput";
-            this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.miToggleInput.Size = new System.Drawing.Size(242, 22);
+            this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.miToggleInput.Size = new System.Drawing.Size(258, 22);
             this.miToggleInput.Text = "Toggle &terminal";
             this.miToggleInput.Click += new System.EventHandler(this.toggleTerminal);
             // 
             // miSep2
             // 
             this.miSep2.Name = "miSep2";
-            this.miSep2.Size = new System.Drawing.Size(239, 6);
+            this.miSep2.Size = new System.Drawing.Size(255, 6);
             // 
             // miAnnotate
             // 
             this.miAnnotate.Name = "miAnnotate";
-            this.miAnnotate.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Return)));
-            this.miAnnotate.Size = new System.Drawing.Size(242, 22);
-            this.miAnnotate.Text = "A&nnotate...";
+            this.miAnnotate.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Return)));
+            this.miAnnotate.Size = new System.Drawing.Size(258, 22);
+            this.miAnnotate.Text = "&Annotate...";
             this.miAnnotate.Click += new System.EventHandler(this.annotate);
-            // 
-            // mnuCloud
-            // 
-            this.mnuCloud.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.miColor,
-            this.miSetLabel});
-            this.mnuCloud.Name = "mnuCloud";
-            this.mnuCloud.Size = new System.Drawing.Size(46, 20);
-            this.mnuCloud.Text = "&Cloud";
-            // 
-            // miColor
-            // 
-            this.miColor.Name = "miColor";
-            this.miColor.Size = new System.Drawing.Size(164, 22);
-            this.miColor.Text = "&Color...";
-            this.miColor.Click += new System.EventHandler(this.cloudColor);
-            // 
-            // miSetLabel
-            // 
-            this.miSetLabel.Name = "miSetLabel";
-            this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.miSetLabel.Size = new System.Drawing.Size(164, 22);
-            this.miSetLabel.Text = "Se&t label...";
-            this.miSetLabel.Click += new System.EventHandler(this.setLabel);
             // 
             // mnuView
             // 
@@ -379,61 +371,61 @@
             this.miInnerClouds,
             this.miCoordinates});
             this.mnuView.Name = "mnuView";
-            this.mnuView.Size = new System.Drawing.Size(41, 20);
+            this.mnuView.Size = new System.Drawing.Size(44, 20);
             this.mnuView.Text = "&View";
             // 
             // miGrid
             // 
             this.miGrid.Name = "miGrid";
-            this.miGrid.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
-            this.miGrid.Size = new System.Drawing.Size(189, 22);
+            this.miGrid.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
+            this.miGrid.Size = new System.Drawing.Size(201, 22);
             this.miGrid.Text = "&Grid";
             this.miGrid.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miConnectionLines
             // 
             this.miConnectionLines.Name = "miConnectionLines";
-            this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.J)));
-            this.miConnectionLines.Size = new System.Drawing.Size(189, 22);
+            this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.J)));
+            this.miConnectionLines.Size = new System.Drawing.Size(201, 22);
             this.miConnectionLines.Text = "Connection &lines";
             this.miConnectionLines.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miInstructions
             // 
             this.miInstructions.Name = "miInstructions";
-            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
-            this.miInstructions.Size = new System.Drawing.Size(189, 22);
+            this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
+            this.miInstructions.Size = new System.Drawing.Size(201, 22);
             this.miInstructions.Text = "Instr&uctions";
             this.miInstructions.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miAnnotations
             // 
             this.miAnnotations.Name = "miAnnotations";
-            this.miAnnotations.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
-            this.miAnnotations.Size = new System.Drawing.Size(189, 22);
+            this.miAnnotations.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
+            this.miAnnotations.Size = new System.Drawing.Size(201, 22);
             this.miAnnotations.Text = "&Annotations";
             this.miAnnotations.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miOwnCloud
             // 
             this.miOwnCloud.Name = "miOwnCloud";
-            this.miOwnCloud.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
-            this.miOwnCloud.Size = new System.Drawing.Size(189, 22);
+            this.miOwnCloud.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
+            this.miOwnCloud.Size = new System.Drawing.Size(201, 22);
             this.miOwnCloud.Text = "O&wn cloud";
             this.miOwnCloud.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miInnerClouds
             // 
             this.miInnerClouds.Name = "miInnerClouds";
-            this.miInnerClouds.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
-            this.miInnerClouds.Size = new System.Drawing.Size(189, 22);
+            this.miInnerClouds.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
+            this.miInnerClouds.Size = new System.Drawing.Size(201, 22);
             this.miInnerClouds.Text = "Inner clou&ds";
             this.miInnerClouds.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miCoordinates
             // 
             this.miCoordinates.Name = "miCoordinates";
-            this.miCoordinates.Size = new System.Drawing.Size(189, 22);
+            this.miCoordinates.Size = new System.Drawing.Size(201, 22);
             this.miCoordinates.Text = "&Coordinates";
             this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
             // 
@@ -441,33 +433,120 @@
             // 
             this.mnuMode.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.miMoveSelect,
-            this.miDraw});
+            this.miDraw,
+            this.miSetLabelPosition});
             this.mnuMode.Name = "mnuMode";
-            this.mnuMode.Size = new System.Drawing.Size(45, 20);
+            this.mnuMode.Size = new System.Drawing.Size(50, 20);
             this.mnuMode.Text = "&Mode";
             // 
             // miMoveSelect
             // 
             this.miMoveSelect.Name = "miMoveSelect";
-            this.miMoveSelect.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
-            this.miMoveSelect.Size = new System.Drawing.Size(185, 22);
+            this.miMoveSelect.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
+            this.miMoveSelect.Size = new System.Drawing.Size(236, 22);
             this.miMoveSelect.Text = "&Move or Select";
             this.miMoveSelect.Click += new System.EventHandler(this.switchMode);
             // 
             // miDraw
             // 
             this.miDraw.Name = "miDraw";
-            this.miDraw.ShortcutKeys = ((System.Windows.Forms.Keys) ((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
-            this.miDraw.Size = new System.Drawing.Size(185, 22);
+            this.miDraw.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.K)));
+            this.miDraw.Size = new System.Drawing.Size(236, 22);
             this.miDraw.Text = "&Draw";
             this.miDraw.Click += new System.EventHandler(this.switchMode);
             // 
-            // unusedCtrlShortcuts
+            // miSetLabelPosition
             // 
-            this.unusedCtrlShortcuts.Name = "unusedCtrlShortcuts";
-            this.unusedCtrlShortcuts.Size = new System.Drawing.Size(197, 20);
-            this.unusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: bcefhpqrvxyz";
-            this.unusedCtrlShortcuts.Visible = false;
+            this.miSetLabelPosition.Name = "miSetLabelPosition";
+            this.miSetLabelPosition.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.L)));
+            this.miSetLabelPosition.Size = new System.Drawing.Size(236, 22);
+            this.miSetLabelPosition.Text = "Set &label position";
+            this.miSetLabelPosition.Click += new System.EventHandler(this.switchMode);
+            // 
+            // mnuUnusedCtrlShortcuts
+            // 
+            this.mnuUnusedCtrlShortcuts.Name = "mnuUnusedCtrlShortcuts";
+            this.mnuUnusedCtrlShortcuts.Size = new System.Drawing.Size(193, 20);
+            this.mnuUnusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: befhpqryz";
+            this.mnuUnusedCtrlShortcuts.Visible = false;
+            // 
+            // miArrowsOnly
+            // 
+            this.miArrowsOnly.Enabled = false;
+            this.miArrowsOnly.Name = "miArrowsOnly";
+            this.miArrowsOnly.Size = new System.Drawing.Size(258, 22);
+            this.miArrowsOnly.Text = "Arrows only";
+            // 
+            // miSep5
+            // 
+            this.miSep5.Name = "miSep5";
+            this.miSep5.Size = new System.Drawing.Size(255, 6);
+            // 
+            // miCloudsOnly
+            // 
+            this.miCloudsOnly.Enabled = false;
+            this.miCloudsOnly.Name = "miCloudsOnly";
+            this.miCloudsOnly.Size = new System.Drawing.Size(258, 22);
+            this.miCloudsOnly.Text = "Current cloud only";
+            // 
+            // miColor
+            // 
+            this.miColor.Name = "miColor";
+            this.miColor.Size = new System.Drawing.Size(258, 22);
+            this.miColor.Text = "C&olor...";
+            this.miColor.Click += new System.EventHandler(this.cloudColor);
+            // 
+            // miSetLabel
+            // 
+            this.miSetLabel.Name = "miSetLabel";
+            this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
+            this.miSetLabel.Size = new System.Drawing.Size(258, 22);
+            this.miSetLabel.Text = "Set &label...";
+            this.miSetLabel.Click += new System.EventHandler(this.setLabel);
+            // 
+            // miBackToOuter
+            // 
+            this.miBackToOuter.Name = "miBackToOuter";
+            this.miBackToOuter.ShortcutKeyDisplayString = "Backspace";
+            this.miBackToOuter.Size = new System.Drawing.Size(258, 22);
+            this.miBackToOuter.Text = "&Back to outer cloud";
+            this.miBackToOuter.Click += new System.EventHandler(this.backToOuterCloud);
+            // 
+            // miEditMnemonics
+            // 
+            this.miEditMnemonics.Name = "miEditMnemonics";
+            this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
+            this.miEditMnemonics.Text = "egijnqsxyz";
+            // 
+            // miSep6
+            // 
+            this.miSep6.Name = "miSep6";
+            this.miSep6.Size = new System.Drawing.Size(255, 6);
+            // 
+            // miCopy
+            // 
+            this.miCopy.Name = "miCopy";
+            this.miCopy.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
+            this.miCopy.Size = new System.Drawing.Size(258, 22);
+            this.miCopy.Text = "&Copy";
+            this.miCopy.Click += new System.EventHandler(this.cutOrCopy);
+            // 
+            // miCut
+            // 
+            this.miCut.Name = "miCut";
+            this.miCut.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.X)));
+            this.miCut.Size = new System.Drawing.Size(258, 22);
+            this.miCut.Text = "C&ut";
+            this.miCut.Click += new System.EventHandler(this.cutOrCopy);
+            // 
+            // miPaste
+            // 
+            this.miPaste.Name = "miPaste";
+            this.miPaste.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.V)));
+            this.miPaste.Size = new System.Drawing.Size(258, 22);
+            this.miPaste.Text = "&Paste";
+            this.miPaste.Click += new System.EventHandler(this.paste);
             // 
             // Mainform
             // 
@@ -506,7 +585,7 @@
         private System.Windows.Forms.ToolStripMenuItem miCopySource;
         private System.Windows.Forms.ToolStripMenuItem miCopyImage;
         private System.Windows.Forms.MenuStrip ctMenu;
-        private System.Windows.Forms.ToolStripMenuItem mnuArrow;
+        private System.Windows.Forms.ToolStripMenuItem mnuEdit;
         private System.Windows.Forms.ToolStripMenuItem mnuProgram;
         private System.Windows.Forms.ToolStripSeparator miSep2;
         private System.Windows.Forms.ToolStripMenuItem miAnnotate;
@@ -531,11 +610,20 @@
         private System.Windows.Forms.ToolStripMenuItem miInnerClouds;
         private System.Windows.Forms.ToolStripMenuItem miToggleInput;
         private System.Windows.Forms.ToolStripMenuItem miOwnCloud;
-        private System.Windows.Forms.ToolStripMenuItem mnuCloud;
-        private System.Windows.Forms.ToolStripMenuItem miColor;
         private System.Windows.Forms.ToolStripMenuItem miCoordinates;
+        private System.Windows.Forms.ToolStripMenuItem mnuUnusedCtrlShortcuts;
+        private System.Windows.Forms.ToolStripMenuItem miSetLabelPosition;
+        private System.Windows.Forms.ToolStripMenuItem miArrowsOnly;
+        private System.Windows.Forms.ToolStripSeparator miSep5;
+        private System.Windows.Forms.ToolStripMenuItem miCloudsOnly;
+        private System.Windows.Forms.ToolStripMenuItem miColor;
         private System.Windows.Forms.ToolStripMenuItem miSetLabel;
-        private System.Windows.Forms.ToolStripMenuItem unusedCtrlShortcuts;
+        private System.Windows.Forms.ToolStripMenuItem miBackToOuter;
+        private System.Windows.Forms.ToolStripMenuItem miCut;
+        private System.Windows.Forms.ToolStripMenuItem miCopy;
+        private System.Windows.Forms.ToolStripMenuItem miPaste;
+        private System.Windows.Forms.ToolStripSeparator miSep6;
+        private System.Windows.Forms.ToolStripMenuItem miEditMnemonics;
     }
 }
 

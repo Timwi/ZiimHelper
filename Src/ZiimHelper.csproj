@@ -60,15 +60,15 @@
     <Compile Include="ZiimHelperProgram.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RT.Util\Src\RT.Util.csproj">
-      <Project>{8D0FE79C-AD8D-475C-9E6F-9CAE85365B5D}</Project>
-      <Name>Util</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Mainform.resx">
       <DependentUpon>Mainform.cs</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\RT.Util\Src\RT.Util.csproj">
+      <Project>{8d0fe79c-ad8d-475c-9e6f-9cae85365b5d}</Project>
+      <Name>Util</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -518,6 +518,7 @@
             this.miEditMnemonics.Name = "miEditMnemonics";
             this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
             this.miEditMnemonics.Text = "egijnqsxyz";
+            this.miEditMnemonics.Visible = false;
             // 
             // miSep6
             // 

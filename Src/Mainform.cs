@@ -353,26 +353,27 @@ namespace ZiimHelper
             var minY = _selected.SelectMany(itm => itm.AllArrows).Min(a => a.Y);
             var maxX = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.X);
             var maxY = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.Y);
-
-            foreach (var arrow in _selected.SelectMany(itm => itm.AllArrows))
+            var fix = Ut.Lambda((int x, int y, Action<int> setX, Action<int> setY) =>
             {
-                var x = arrow.X - minX;
-                var y = arrow.Y - minY;
+                setX(sender == miRotateClockwise ? minX + (maxY - minY) - y + minY : minX + y - minY);
+                setY(sender == miRotateClockwise ? minY + x - minX : minY + (maxX - minX) - x + minX);
+            });
 
-                if (sender == miRotateClockwise)
-                {
-                    arrow.X = minX + (maxY - minY) - y;
-                    arrow.Y = minY + x;
-                    arrow.Rotate(true);
-                    arrow.Rotate(true);
-                }
-                else
-                {
-                    arrow.X = minX + y;
-                    arrow.Y = minY + (maxX - minX) - x;
-                    arrow.Rotate(false);
-                    arrow.Rotate(false);
-                }
+            foreach (var item in _selected.SelectMany(itm => itm.AllItems))
+            {
+                Ut.IfType(item,
+                    (ArrowInfo arrow) =>
+                    {
+                        fix(arrow.X, arrow.Y, x => { arrow.X = x; }, y => { arrow.Y = y; });
+                        arrow.Rotate(sender == miRotateClockwise);
+                        arrow.Rotate(sender == miRotateClockwise);
+                    },
+                    (Cloud cloud) =>
+                    {
+                        fix(cloud.LabelFromX, cloud.LabelFromY, x => { cloud.LabelFromX = x; }, y => { cloud.LabelFromY = y; });
+                        fix(cloud.LabelToX, cloud.LabelToY, x => { cloud.LabelToX = x; }, y => { cloud.LabelToY = y; });
+                    },
+                    wrongType => { throw new InvalidOperationException("Unexpected type of item."); });
             }
             refresh();
         }
@@ -962,7 +963,7 @@ namespace ZiimHelper
                 Cloud file;
                 try
                 {
-                    file = XmlClassify.LoadObjectFromXmlFile<Cloud>(dlg.FileName);
+                    file = ClassifyXml.DeserializeFile<Cloud>(dlg.FileName, _classifyOptions);
                 }
                 catch (Exception e)
                 {
@@ -1031,7 +1032,7 @@ namespace ZiimHelper
                     return;
                 _editingCloud.Color = dlg.Color;
                 _fileChanged = true;
-                ctImage.Invalidate();
+                refresh();
             }
         }
 
@@ -1075,7 +1076,7 @@ namespace ZiimHelper
         {
             try
             {
-                var clipboard = ClassifyXml.Deserialize<Item[]>(XElement.Parse(Clipboard.GetText()));
+                var clipboard = ClassifyXml.Deserialize<Item[]>(XElement.Parse(Clipboard.GetText()), _classifyOptions);
                 jiggle(clipboard);
                 _editingCloud.Items.AddRange(clipboard);
                 _selected.Clear();

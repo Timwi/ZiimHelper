@@ -21,9 +21,9 @@ namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
-        private Cloud _editingCloud = new Cloud();
+        private Cloud _editingCloud;
         private Stack<Cloud> _outerClouds = new Stack<Cloud>();
-        private Cloud _file = new Cloud();
+        private Cloud _file;
         private string _filename = null;
         private bool _fileChanged = false;
         private HashSet<Item> _selected = new HashSet<Item>();
@@ -54,6 +54,8 @@ namespace ZiimHelper
                 new ModeInfo(miDraw, EditMode.Draw),
                 new ModeInfo(miSetLabelPosition, EditMode.SetLabelPosition)
             );
+
+            _file = _editingCloud = new Cloud();
 
             setUi();
             setMode(ZiimHelperProgram.Settings.EditMode);
@@ -196,8 +198,10 @@ namespace ZiimHelper
                             var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
                             while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1) { toX -= dir.XOffset(); toY -= dir.YOffset(); }
                             g.DrawLine(new Pen(Color.LightGreen) { EndCap = LineCap.ArrowAnchor },
-                                cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize / 2, cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize / 2,
-                                cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10, cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                                cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize * 4 / 10,
+                                cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize * 4 / 10,
+                                cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10,
+                                cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
                         }
                         if (miInstructions.Checked && pointTo != null)
                             hitFromDic.AddSafe(pointTo, dir);
@@ -217,6 +221,7 @@ namespace ZiimHelper
                     var directions = !arrow.IsTerminal && hitFromDic.ContainsKey(arrow) ? hitFromDic[arrow] : null;
                     string instruction = null;
                     Direction dir = 0;
+                    int yn = 0;
                     if (arrow is SingleArrowInfo)
                     {
                         var sai = (SingleArrowInfo) arrow;
@@ -254,21 +259,25 @@ namespace ZiimHelper
                         {
                             instruction = "Z";
                             dir = dai.Direction.GetDirection1();
+                            yn = -1;
                         }
                         else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 5) % 8))  // isZero
                         {
                             instruction = "Z";
                             dir = dai.Direction.GetDirection2();
+                            yn = -1;
                         }
                         else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 3) % 8))  // isEmpty
                         {
                             instruction = "E";
                             dir = dai.Direction.GetDirection1();
+                            yn = 1;
                         }
                         else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 7) % 8))  // isEmpty
                         {
                             instruction = "E";
                             dir = dai.Direction.GetDirection2();
+                            yn = 1;
                         }
                     }
 
@@ -297,6 +306,19 @@ namespace ZiimHelper
                             (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
                             new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
                         );
+                        if (yn != 0)
+                        {
+                            g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                            );
+                            g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                            );
+                        }
                     }
                     else
                         g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
@@ -731,8 +753,19 @@ namespace ZiimHelper
 
         private void annotate(object sender, EventArgs e)
         {
-            var annotation = _selected.SelectMany(itm => itm.AllArrows).Select(arr => arr.Annotation).JoinString();
-            var newAnnotation = InputBox.GetLine("Annotation:", annotation, "Annotation", "&OK", "&Cancel");
+            if (_selected.Count == 0)
+            {
+                DlgMessage.Show("Nothing selected.", "Error", DlgType.Error);
+                return;
+            }
+            if (_selected.OfType<Cloud>().Any())
+            {
+                DlgMessage.Show("Cannot annotate a cloud.", "Error", DlgType.Error);
+                return;
+            }
+
+            var annotation = _selected.SelectMany(itm => itm.AllArrows).Select(arr => arr.Annotation).FirstOrDefault(ann => !string.IsNullOrWhiteSpace(ann));
+            var newAnnotation = InputBox.GetLine("Annotation:", annotation ?? "", "Annotation", "&OK", "&Cancel");
             if (newAnnotation != null)
             {
                 foreach (var arr in _selected.SelectMany(itm => itm.AllArrows))
@@ -789,8 +822,7 @@ namespace ZiimHelper
             if (!canDestroy())
                 return;
             _filename = null;
-            _file = new Cloud();
-            _editingCloud = new Cloud();
+            _file = _editingCloud = new Cloud();
             _outerClouds.Clear();
             _selected.Clear();
             _fileChanged = false;

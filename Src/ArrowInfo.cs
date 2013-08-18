@@ -80,13 +80,13 @@ namespace ZiimHelper
         }
         public void DrawCloud(Graphics g, int cellSize, bool own)
         {
-            drawCloud(g, cellSize, fill: true, margin: cellSize / 10, style: own ? FontStyle.Bold : FontStyle.Regular, constrainWidth: own);
+            drawCloud(g, cellSize, fill: true, margin: cellSize / 10, style: own ? FontStyle.Bold : FontStyle.Regular);
         }
 
         [XmlIgnore]
         private static FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
 
-        private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular, bool constrainWidth = false)
+        private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular)
         {
             if (!AllArrows.Any(a => !a.IsTerminal))
                 return;
@@ -160,7 +160,7 @@ namespace ZiimHelper
                             (int) style,
                             g.GetMaximumFontSize(_cloudFont, Label, style, maxWidth: dist) * g.DpiY / 72,
                             centerPoint,
-                            new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                            Util.CenterCenter
                         );
                         var rotate = new Matrix();
                         rotate.RotateAt((float) (Math.Atan2(distY, distX) * 180 / Math.PI), centerPoint);

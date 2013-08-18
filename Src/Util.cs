@@ -10,11 +10,13 @@ namespace ZiimHelper
 {
     static class Util
     {
+        public static readonly StringFormat CenterCenter = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+
         public static GraphicsPath CloudPath(Virtual2DArray<bool> cloud, int cellSize, float margin)
         {
-            Point[][] outlines = boolsToPaths(cloud);
-            SizeF diameter = new SizeF(cellSize / 2, cellSize / 2);
-            GraphicsPath result = new GraphicsPath();
+            var outlines = boolsToPaths(cloud);
+            var diameter = new SizeF(cellSize / 2, cellSize / 2);
+            var result = new GraphicsPath();
             if (diameter.Width == 0 || diameter.Height == 0)
                 return result;
             for (int i = 0; i < outlines.Length; i++)
@@ -22,10 +24,10 @@ namespace ZiimHelper
                 result.StartFigure();
                 for (int j = 0; j < outlines[i].Length; j++)
                 {
-                    Point point1 = outlines[i][j];
-                    Point point2 = outlines[i][(j + 1) % outlines[i].Length];
-                    Point point3 = outlines[i][(j + 2) % outlines[i].Length];
-                    Rectangle rect = new Rectangle(point2.X * cellSize, point2.Y * cellSize, cellSize, cellSize);
+                    var point1 = outlines[i][j];
+                    var point2 = outlines[i][(j + 1) % outlines[i].Length];
+                    var point3 = outlines[i][(j + 2) % outlines[i].Length];
+                    var rect = new Rectangle(point2.X * cellSize, point2.Y * cellSize, cellSize, cellSize);
 
                     int dir1 = getDir(point1, point2);
                     int dir2 = getDir(point2, point3);
@@ -62,14 +64,6 @@ namespace ZiimHelper
                 : (from.X > to.X ? 1 : 2);
         }
 
-        /// <summary>Given a <see cref="MoveFinder"/> or <see cref="PushFinder"/>, generates the "outline" of the reachable area.
-        /// If there are several disjoint regions, several separate outlines are generated.</summary>
-        /// <param name="input">The input <see cref="MoveFinder"/> or <see cref="PushFinder"/> to generate the outline from.</param>
-        /// <returns>An array of paths, where each path is an array of points. The co-ordinates of the points are the indexes in the input array.</returns>
-        /// <example>
-        /// <para>An input array full of booleans set to false generates an empty output array.</para>
-        /// <para>An input array full of booleans set to true generates a single output path which describes the complete rectangle.</para>
-        /// </example>
         private static Point[][] boolsToPaths(Virtual2DArray<bool> input)
         {
             int width = input.Width;

@@ -150,14 +150,16 @@ namespace ZiimHelper
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
             var maxSize = Math.Max(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1);
 
+            // GRID
             if (miGrid.Checked)
             {
                 for (int i = 1; i <= _paintMaxX - _paintMinX; i++)
-                    g.DrawLine(Pens.DarkGray, i * cellSize, 0, i * cellSize, (_paintMaxY - _paintMinY + 1) * cellSize);
+                    g.DrawLine(Pens.LightGray, i * cellSize, 0, i * cellSize, (_paintMaxY - _paintMinY + 1) * cellSize);
                 for (int j = 1; j <= _paintMaxY - _paintMinY; j++)
-                    g.DrawLine(Pens.DarkGray, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
+                    g.DrawLine(Pens.LightGray, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
             }
 
+            // CLOUDS (own and inner; not including terminals)
             if (miInnerClouds.Checked || miOwnCloud.Checked)
                 using (var tr = new GraphicsTransformer(g).Translate(-_paintMinX * cellSize, -_paintMinY * cellSize))
                     foreach (var cloud in miInnerClouds.Checked ? _editingCloud.AllClouds : new[] { _editingCloud })
@@ -166,45 +168,38 @@ namespace ZiimHelper
 
             var hitFromDic = new Dictionary<ArrowInfo, List<Direction>>();
 
-            foreach (var inf in _editingCloud.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
+            // COORDINATES and CONNECTION LINES (also populate hitFromDic for “instructions” later)
+            if (miCoordinates.Checked || miConnectionLines.Checked || miInstructions.Checked)
             {
-                var arr = inf.Item1;
-                var parentCloud = inf.Item2;
-
-                if ((!arr.IsTerminal || parentCloud != _editingCloud || miOwnCloud.Checked) &&
-                    (!arr.IsTerminal || parentCloud == _editingCloud || miInnerClouds.Checked))
-                    g.DrawString(
-                        arr.Character.ToString(),
-                        new Font(_arrowFont, fontSize),
-                        arr.IsTerminal ? new SolidBrush(parentCloud.Color) : arr.Marked ? Brushes.Red : Brushes.Black,
-                        (arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize + cellSize / 2,
-                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-                    );
-
-                if (miCoordinates.Checked)
-                    g.DrawString(arr.CoordsString, new Font(_annotationFont, fontSize / 4), Brushes.Black, (arr.X - _paintMinX) * cellSize, (arr.Y - _paintMinY) * cellSize);
-
-                if (miAnnotations.Checked && arr.Annotation != null && !arr.IsTerminal)
-                    drawInRoundedRectangle(g, arr.Annotation, new PointF((arr.X - _paintMinX) * cellSize + cellSize / 2, (arr.Y - _paintMinY) * cellSize), Color.FromArgb(0xEE, 0xEE, 0xFF), Color.Blue, Color.DarkBlue);
-
-                if (!arr.IsTerminal || parentCloud == _editingCloud)
+                foreach (var inf in _editingCloud.ArrowsWithParents.OrderBy(awp => !awp.Item1.IsTerminal))
                 {
-                    foreach (var dir in arr.Directions)
+                    var arr = inf.Item1;
+                    var parentCloud = inf.Item2;
+
+                    // COORDINATES
+                    if (miCoordinates.Checked)
+                        g.DrawString(arr.CoordsString, new Font(_annotationFont, fontSize / 4), Brushes.Black, (arr.X - _paintMinX) * cellSize, (arr.Y - _paintMinY) * cellSize);
+
+                    // CONNECTION LINES
+                    if ((!arr.IsTerminal || parentCloud == _editingCloud) && (miConnectionLines.Checked || miInstructions.Checked))
                     {
-                        var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
-                        if (miConnectionLines.Checked)
+                        foreach (var dir in arr.Directions)
                         {
-                            var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
-                            var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
-                            while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1) { toX -= dir.XOffset(); toY -= dir.YOffset(); }
-                            g.DrawLine(new Pen(Color.LightGreen) { EndCap = LineCap.ArrowAnchor },
-                                cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize * 4 / 10,
-                                cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize * 4 / 10,
-                                cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10,
-                                cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                            var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
+                            if (miConnectionLines.Checked)
+                            {
+                                var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
+                                var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
+                                while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1) { toX -= dir.XOffset(); toY -= dir.YOffset(); }
+                                g.DrawLine(new Pen(Color.LightGreen) { EndCap = LineCap.ArrowAnchor },
+                                    cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize * 4 / 10,
+                                    cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize * 4 / 10,
+                                    cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10,
+                                    cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                            }
+                            if (miInstructions.Checked && pointTo != null)
+                                hitFromDic.AddSafe(pointTo, dir);
                         }
-                        if (miInstructions.Checked && pointTo != null)
-                            hitFromDic.AddSafe(pointTo, dir);
                     }
                 }
             }
@@ -216,121 +211,123 @@ namespace ZiimHelper
                 var x = (arrow.X - _paintMinX) * cellSize;
                 var y = (arrow.Y - _paintMinY) * cellSize;
 
-                if (miInstructions.Checked || arrow.IsTerminal)
+                // ARROWS (including terminals)
+                if (!arrow.IsTerminal || (parentCloud == _editingCloud ? miOwnCloud : miInnerClouds).Checked)
+                    g.DrawString(
+                        arrow.Character.ToString(),
+                        new Font(_arrowFont, fontSize),
+                        arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : arrow.Marked ? Brushes.Red : Brushes.Black,
+                        (arrow.X - _paintMinX) * cellSize + cellSize / 2, (arrow.Y - _paintMinY) * cellSize + cellSize / 2,
+                        Util.CenterCenter
+                    );
+
+                // ANNOTATIONS for TERMINALS
+                if (arrow.IsTerminal && arrow.Annotation != null && (parentCloud == _editingCloud ? miOwnCloud : miInnerClouds).Checked)
                 {
-                    var directions = !arrow.IsTerminal && hitFromDic.ContainsKey(arrow) ? hitFromDic[arrow] : null;
+                    var p = new[] { new Point(0, 0) };
+                    g.Transform.TransformPoints(p);
+                    using (var tr = new GraphicsTransformer(g).Translate(0, -cellSize / 4).RotateAt(45 * ((int) ((SingleArrowInfo) arrow).Direction % 4 - 2), p[0]).Translate(x + cellSize / 2, y + cellSize / 2))
+                        g.DrawString(
+                            arrow.Annotation,
+                            new Font(_annotationFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _annotationFont, arrow.Annotation)),
+                            arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : Brushes.Black,
+                            0, 0,
+                            Util.CenterCenter
+                        );
+                }
+
+                // INSTRUCTIONS (requires hitFromDic populated earlier during “arrows”)
+                if (!arrow.IsTerminal && miInstructions.Checked)
+                {
+                    List<Direction> directions;
+                    if (arrow.IsTerminal || !hitFromDic.TryGetValue(arrow, out directions))
+                        directions = null;
                     string instruction = null;
                     Direction dir = 0;
                     int yn = 0;
-                    if (arrow is SingleArrowInfo)
-                    {
-                        var sai = (SingleArrowInfo) arrow;
-                        dir = sai.Direction;
-                        if (!sai.IsTerminal)
-                        {
-                            if (directions == null || directions.Count == 0)   // { 0 }
-                                instruction = "0";
-                            else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 1) % 8))     // stdin
-                                instruction = "R";
-                            else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 3) % 8))     // invert
-                                instruction = "I";
-                            else if (directions.Count == 1 && directions[0] == (Direction) (((int) sai.Direction + 5) % 8))     // no-op
-                                instruction = "N";
-                            else if (directions.Count == 2 && directions.Contains((Direction) (((int) sai.Direction + 1) % 8)) && directions.Contains((Direction) (((int) sai.Direction + 7) % 8)))  // concatenator
-                                instruction = "C";
-                            else if (directions.Count == 2 && directions.Contains((Direction) (((int) sai.Direction + 3) % 8)) && directions.Contains((Direction) (((int) sai.Direction + 5) % 8)))  // label
-                                instruction = "L";
-                        }
-                    }
-                    else
-                    {
-                        var dai = (DoubleArrowInfo) arrow;
-                        if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 2) % 8))  // splitter
-                        {
-                            instruction = "S";
-                            dir = dai.Direction.GetDirection1();
-                        }
-                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 6) % 8))  // splitter
-                        {
-                            instruction = "S";
-                            dir = dai.Direction.GetDirection2();
-                        }
-                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 1) % 8))  // isZero
-                        {
-                            instruction = "Z";
-                            dir = dai.Direction.GetDirection1();
-                            yn = -1;
-                        }
-                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 5) % 8))  // isZero
-                        {
-                            instruction = "Z";
-                            dir = dai.Direction.GetDirection2();
-                            yn = -1;
-                        }
-                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 3) % 8))  // isEmpty
-                        {
-                            instruction = "E";
-                            dir = dai.Direction.GetDirection1();
-                            yn = 1;
-                        }
-                        else if (directions != null && directions.Count == 1 && directions[0] == (Direction) (((int) dai.Direction.GetDirection1() + 7) % 8))  // isEmpty
-                        {
-                            instruction = "E";
-                            dir = dai.Direction.GetDirection2();
-                            yn = 1;
-                        }
-                    }
 
-                    if (arrow.IsTerminal)
-                    {
-                        if (arrow.Annotation != null && ((miOwnCloud.Checked && parentCloud == _editingCloud) || (miInnerClouds.Checked && parentCloud != _editingCloud)))
+                    Ut.IfType(arrow,
+                        (SingleArrowInfo arr) =>
                         {
-                            var p = new[] { new Point(0, 0) };
-                            g.Transform.TransformPoints(p);
-                            using (var tr = new GraphicsTransformer(g).Translate(0, -cellSize / 4).RotateAt(45 * ((int) dir % 4 - 2), p[0]).Translate(x + cellSize / 2, y + cellSize / 2))
+                            dir = arr.Direction;
+                            var relativeDirections = directions.NullOr(dirs => dirs.Select(d => ((int) d - (int) dir + 8) % 8).ToArray());
+                            instruction =
+                                directions == null ? "0" :
+                                directions.Count == 1 ?
+                                    relativeDirections[0] == 1 ? "R" :
+                                    relativeDirections[0] == 3 ? "I" :
+                                    relativeDirections[0] == 5 ? "N" : null :
+                                directions.Count == 2 ?
+                                    relativeDirections.Contains(1) && relativeDirections.Contains(7) ? "C" :
+                                    relativeDirections.Contains(3) && relativeDirections.Contains(5) ? "L" : null : null;
+                        },
+                        (DoubleArrowInfo arr) =>
+                        {
+                            if (directions == null || directions.Count != 1)
+                                return;
+                            switch (((int) directions[0] - (int) arr.Direction.GetDirection1() + 8) % 8)
                             {
-                                g.DrawString(
-                                    arrow.Annotation,
-                                    new Font(_annotationFont, g.GetMaximumFontSize(new SizeF(cellSize * 4 / 5, cellSize * 4 / 5), _annotationFont, arrow.Annotation)),
-                                    arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : Brushes.Black,
-                                    0, 0,
-                                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-                                );
+                                case 2: instruction = "S"; dir = arr.Direction.GetDirection1(); break;
+                                case 6: instruction = "S"; dir = arr.Direction.GetDirection2(); break;
+                                case 1: instruction = "Z"; dir = arr.Direction.GetDirection1(); yn = -1; break;
+                                case 5: instruction = "Z"; dir = arr.Direction.GetDirection2(); yn = -1; break;
+                                case 3: instruction = "E"; dir = arr.Direction.GetDirection1(); yn = 1; break;
+                                case 7: instruction = "E"; dir = arr.Direction.GetDirection2(); yn = 1; break;
                             }
                         }
-                    }
-                    else if (instruction != null)
+                    );
+
+                    if (instruction == null)
+                        // Mark invalid arrows with a semitransparent red circle
+                        g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
+                    else
                     {
                         g.DrawString(instruction, new Font(_instructionFont, fontSize / 2), Brushes.Black,
                             (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
                             (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
-                            new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                            Util.CenterCenter
                         );
                         if (yn != 0)
                         {
                             g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
                                 (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
                                 (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
-                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                                Util.CenterCenter
                             );
                             g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
                                 (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
                                 (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
-                                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
+                                Util.CenterCenter
                             );
                         }
                     }
-                    else
-                        g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
                 }
             }
 
-            StringFormat sf = null;
+            // ANNOTATIONS for NON-TERMINALS
+            if (miAnnotations.Checked)
+                using (var fillBrush = new SolidBrush(Color.FromArgb(0xEE, 0xEE, 0xFF)))
+                using (var pen = new Pen(Color.Blue, 1))
+                using (var font = new Font(_annotationFont, _paintFontSize / 5))
+                using (var textBrush = new SolidBrush(Color.DarkBlue))
+                    foreach (var arr in _editingCloud.AllArrows)
+                    {
+                        if (arr.Annotation == null || arr.IsTerminal)
+                            continue;
+                        var size = g.MeasureString(arr.Annotation, font, int.MaxValue, Util.CenterCenter) + new SizeF(6, 2);
+                        var location = new PointF((arr.X - _paintMinX) * cellSize + cellSize / 2 - size.Width / 2, (arr.Y - _paintMinY) * cellSize - size.Height / 2);
+                        var path = GraphicsUtil.RoundedRectangle(new RectangleF(location, size), Math.Min(size.Width, size.Height) / 3);
+                        g.FillPath(fillBrush, path);
+                        g.DrawPath(pen, path);
+                        g.DrawString(arr.Annotation, font, textBrush, new RectangleF(location + new SizeF(3, 1), size - new SizeF(6, 2)), Util.CenterCenter);
+                    }
+
+            /// “!!!” for arrows that overlap
             foreach (var pair in _editingCloud.AllArrows.UniquePairs())
                 if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y && pair.Item1.IsTerminal == pair.Item2.IsTerminal)
                     g.DrawString("!!!", new Font(_arrowFont, fontSize, FontStyle.Italic), Brushes.Red,
                         cellSize * (pair.Item1.X - _paintMinX) + cellSize / 2, cellSize * (pair.Item1.Y - _paintMinY) + cellSize / 2,
-                        sf ?? (sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }));
+                        Util.CenterCenter);
         }
 
         private ArrowInfo getPointTo(int x, int y, int xOffset, int yOffset)
@@ -345,17 +342,6 @@ namespace ZiimHelper
             }
             while (x >= _paintMinX && x <= _paintMaxX && y >= _paintMinY && y <= _paintMaxY);
             return null;
-        }
-
-        private void drawInRoundedRectangle(Graphics g, string text, PointF location, Color background, Color outline, Color textColor)
-        {
-            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            var size = g.MeasureString(text, new Font(_annotationFont, _paintFontSize / 5), int.MaxValue, sf) + new SizeF(6, 2);
-            var realLocation = location - new SizeF(size.Width / 2, size.Height / 2);
-            var path = GraphicsUtil.RoundedRectangle(new RectangleF(realLocation, size), Math.Min(size.Width, size.Height) / 3);
-            g.FillPath(new SolidBrush(background), path);
-            g.DrawPath(new Pen(outline, 1), path);
-            g.DrawString(text, new Font(_annotationFont, _paintFontSize / 5), new SolidBrush(textColor), new RectangleF(realLocation + new SizeF(3, 1), size - new SizeF(6, 2)), sf);
         }
 
         private void rotate(object sender, EventArgs __)

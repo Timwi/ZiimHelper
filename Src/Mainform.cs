@@ -152,12 +152,13 @@ namespace ZiimHelper
 
             // GRID
             if (miGrid.Checked)
-            {
-                for (int i = 1; i <= _paintMaxX - _paintMinX; i++)
-                    g.DrawLine(Pens.LightGray, i * cellSize, 0, i * cellSize, (_paintMaxY - _paintMinY + 1) * cellSize);
-                for (int j = 1; j <= _paintMaxY - _paintMinY; j++)
-                    g.DrawLine(Pens.LightGray, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
-            }
+                using (var pen = new Pen(Color.FromArgb(0xEE, 0xEE, 0xEE)))
+                {
+                    for (int i = 1; i <= _paintMaxX - _paintMinX; i++)
+                        g.DrawLine(pen, i * cellSize, 0, i * cellSize, (_paintMaxY - _paintMinY + 1) * cellSize);
+                    for (int j = 1; j <= _paintMaxY - _paintMinY; j++)
+                        g.DrawLine(pen, 0, j * cellSize, (_paintMaxX - _paintMinX + 1) * cellSize, j * cellSize);
+                }
 
             // CLOUDS (own and inner; not including terminals)
             if (miInnerClouds.Checked || miOwnCloud.Checked)
@@ -300,6 +301,19 @@ namespace ZiimHelper
                                 Util.CenterCenter
                             );
                         }
+                        else if (instruction == "C")
+                        {
+                            g.DrawString("A", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                Util.CenterCenter
+                            );
+                            g.DrawString("B", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                Util.CenterCenter
+                            );
+                        }
                     }
                 }
             }
@@ -308,7 +322,7 @@ namespace ZiimHelper
             if (miAnnotations.Checked)
                 using (var fillBrush = new SolidBrush(Color.FromArgb(0xEE, 0xEE, 0xFF)))
                 using (var pen = new Pen(Color.Blue, 1))
-                using (var font = new Font(_annotationFont, _paintFontSize / 5))
+                using (var font = new Font(_annotationFont, 8))
                 using (var textBrush = new SolidBrush(Color.DarkBlue))
                     foreach (var arr in _editingCloud.AllArrows)
                     {
@@ -710,9 +724,7 @@ namespace ZiimHelper
                     {
                         var trySize = high == null ? low + 1024 : (low + high.Value) / 2;
                         var tryFont = new Font(_arrowFont, trySize, FontStyle.Bold);
-                        var size = "↖↑↗→↘↓↙←↕⤢↔⤡"
-                            .Select(ch => g.MeasureString(ch.ToString(), tryFont))
-                            .Max(sz => sender == miCopyImageByWidth ? sz.Width : sz.Height);
+                        var size = "↖↑↗→↘↓↙←↕⤢↔⤡".Select(ch => g.MeasureString(ch.ToString(), tryFont)).Max(sz => sz.Width);
                         if (size * (sender == miCopyImageByWidth ? _paintMaxX - _paintMinX + 1 : _paintMaxY - _paintMinY + 1) > input)
                             high = trySize;
                         else
@@ -725,7 +737,7 @@ namespace ZiimHelper
 
                 var font = new Font(_arrowFont, fontSize, FontStyle.Bold);
                 foreach (var ch in "↖↑↗→↘↓↙←↕⤢↔⤡")
-                    cellWidth = Math.Max(cellWidth, (int) Math.Floor(g.MeasureString(ch.ToString(), font).Width));
+                    cellWidth = Math.Max(cellWidth, (int) g.MeasureString(ch.ToString(), font).Width);
             }
 
             using (var bmpReal = new Bitmap(cellWidth * (_paintMaxX - _paintMinX + 1), cellWidth * (_paintMaxY - _paintMinY + 1), PixelFormat.Format32bppArgb))

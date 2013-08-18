@@ -176,7 +176,7 @@ namespace ZiimHelper
 
         public override bool IsContainedIn(int minX, int minY, int maxX, int maxY)
         {
-            return Items.All(i => i.IsContainedIn(minX, minY, maxX, maxY));
+            return Items.All(i => (i is ArrowInfo && ((ArrowInfo) i).IsTerminal) || i.IsContainedIn(minX, minY, maxX, maxY));
         }
 
         public override Item ItemAt(int x, int y)

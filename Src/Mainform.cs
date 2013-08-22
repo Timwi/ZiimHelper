@@ -707,8 +707,11 @@ namespace ZiimHelper
                     _selected.Clear();
 
                 Item alreadyItem;
-                if (_mouseDown.X == _mouseDraggedTo.X && _mouseDown.Y == _mouseDraggedTo.Y && (alreadyItem = _editingCloud.ItemAt(_mouseDraggedTo.X, _mouseDraggedTo.Y)) != null && _selected.Contains(alreadyItem))
-                    _selected.Remove(alreadyItem);
+                if (_mouseDown.X == _mouseDraggedTo.X && _mouseDown.Y == _mouseDraggedTo.Y && (alreadyItem = _editingCloud.ItemAt(_mouseDraggedTo.X, _mouseDraggedTo.Y)) != null)
+                {
+                    if (!_selected.Remove(alreadyItem))
+                        _selected.Add(alreadyItem);
+                }
                 else
                 {
                     foreach (var item in _editingCloud.Items.Where(item => item.IsContainedIn(

@@ -188,93 +188,99 @@ namespace ZiimHelper
             // INSTRUCTIONS (requires pointedAtFromDirectionsDic populated earlier)
             // Also creates a dictionary to remember which instruction each arrow is
             var instructionDic = new Dictionary<ArrowInfo, string>();
-            foreach (var inf in _editingCloud.ArrowsWithParents)
+            if (miInstructions.Checked || miConnectionLines.Checked)
             {
-                var arrow = inf.Item1;
-                if (arrow.IsTerminal)
-                    continue;
-                var parentCloud = inf.Item2;
-                var x = (arrow.X - _paintMinX) * cellSize;
-                var y = (arrow.Y - _paintMinY) * cellSize;
+                foreach (var inf in _editingCloud.ArrowsWithParents)
+                {
+                    var arrow = inf.Item1;
+                    if (arrow.IsTerminal)
+                        continue;
+                    var parentCloud = inf.Item2;
+                    var x = (arrow.X - _paintMinX) * cellSize;
+                    var y = (arrow.Y - _paintMinY) * cellSize;
 
-                List<Direction> directions;
-                if (arrow.IsTerminal || !pointedAtFromDirectionsDic.TryGetValue(arrow, out directions))
-                    directions = null;
-                string instruction = null;
-                Direction dir = 0;
-                int yn = 0;
+                    List<Direction> directions;
+                    if (arrow.IsTerminal || !pointedAtFromDirectionsDic.TryGetValue(arrow, out directions))
+                        directions = null;
+                    string instruction = null;
+                    Direction dir = 0;
+                    int yn = 0;
 
-                Ut.IfType(arrow,
-                    (SingleArrowInfo arr) =>
-                    {
-                        dir = arr.Direction;
-                        var relativeDirections = directions.NullOr(dirs => dirs.Select(d => ((int) d - (int) dir + 8) % 8).ToArray());
-                        instruction =
-                            directions == null ? "0" :
-                            directions.Count == 1 ?
-                                relativeDirections[0] == 1 ? "R" :
-                                relativeDirections[0] == 3 ? "I" :
-                                relativeDirections[0] == 5 ? "N" : null :
-                            directions.Count == 2 ?
-                                relativeDirections.Contains(1) && relativeDirections.Contains(7) ? "C" :
-                                relativeDirections.Contains(3) && relativeDirections.Contains(5) ? "L" : null : null;
-                    },
-                    (DoubleArrowInfo arr) =>
-                    {
-                        if (directions == null || directions.Count != 1)
-                            return;
-                        switch (((int) directions[0] - (int) arr.Direction.GetDirection1() + 8) % 8)
+                    Ut.IfType(arrow,
+                        (SingleArrowInfo arr) =>
                         {
-                            case 2: instruction = "S"; dir = arr.Direction.GetDirection1(); break;
-                            case 6: instruction = "S"; dir = arr.Direction.GetDirection2(); break;
-                            case 1: instruction = "Z2"; dir = arr.Direction.GetDirection1(); yn = -1; break;
-                            case 5: instruction = "Z1"; dir = arr.Direction.GetDirection2(); yn = -1; break;
-                            case 3: instruction = "E1"; dir = arr.Direction.GetDirection1(); yn = 1; break;
-                            case 7: instruction = "E2"; dir = arr.Direction.GetDirection2(); yn = 1; break;
+                            dir = arr.Direction;
+                            var relativeDirections = directions.NullOr(dirs => dirs.Select(d => ((int) d - (int) dir + 8) % 8).ToArray());
+                            instruction =
+                                directions == null ? "0" :
+                                directions.Count == 1 ?
+                                    relativeDirections[0] == 1 ? "R" :
+                                    relativeDirections[0] == 3 ? "I" :
+                                    relativeDirections[0] == 5 ? "N" : null :
+                                directions.Count == 2 ?
+                                    relativeDirections.Contains(1) && relativeDirections.Contains(7) ? "C" :
+                                    relativeDirections.Contains(3) && relativeDirections.Contains(5) ? "L" : null : null;
+                        },
+                        (DoubleArrowInfo arr) =>
+                        {
+                            if (directions == null || directions.Count != 1)
+                                return;
+                            switch (((int) directions[0] - (int) arr.Direction.GetDirection1() + 8) % 8)
+                            {
+                                case 2: instruction = "S"; dir = arr.Direction.GetDirection1(); break;
+                                case 6: instruction = "S"; dir = arr.Direction.GetDirection2(); break;
+                                case 1: instruction = "Z2"; dir = arr.Direction.GetDirection1(); yn = -1; break;
+                                case 5: instruction = "Z1"; dir = arr.Direction.GetDirection2(); yn = -1; break;
+                                case 3: instruction = "E1"; dir = arr.Direction.GetDirection1(); yn = 1; break;
+                                case 7: instruction = "E2"; dir = arr.Direction.GetDirection2(); yn = 1; break;
+                            }
+                        }
+                    );
+
+                    if (miInstructions.Checked)
+                    {
+                        if (instruction == null)
+                            // Mark invalid arrows with a semitransparent red circle
+                            g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
+                        else
+                        {
+                            g.DrawString(instruction.Substring(0, 1), new Font(_instructionFont, fontSize / 2), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
+                                Util.CenterCenter
+                            );
+                            if (yn != 0)
+                            {
+                                g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                                g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                            }
+                            else if (instruction == "C")
+                            {
+                                g.DrawString("A", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                                g.DrawString("B", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                            }
                         }
                     }
-                );
 
-                if (instruction == null)
-                    // Mark invalid arrows with a semitransparent red circle
-                    g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
-                else
-                {
-                    g.DrawString(instruction.Substring(0, 1), new Font(_instructionFont, fontSize / 2), Brushes.Black,
-                        (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
-                        (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
-                        Util.CenterCenter
-                    );
-                    if (yn != 0)
-                    {
-                        g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                            (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
-                            (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
-                            Util.CenterCenter
-                        );
-                        g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                            (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
-                            (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
-                            Util.CenterCenter
-                        );
-                    }
-                    else if (instruction == "C")
-                    {
-                        g.DrawString("A", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                            (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
-                            (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
-                            Util.CenterCenter
-                        );
-                        g.DrawString("B", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                            (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
-                            (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
-                            Util.CenterCenter
-                        );
-                    }
+                    if (instruction != null)
+                        instructionDic.Add(arrow, instruction);
                 }
-
-                if (instruction != null)
-                    instructionDic.Add(arrow, instruction);
             }
 
             // COORDINATES and CONNECTION LINES
@@ -316,94 +322,97 @@ namespace ZiimHelper
                         q.Enqueue(Tuple.Create(arr, -1, instruction[0] == 'E'));
                 }
 
-                // 1/2 = waiting with knownEmpty=false/true; 3 = released by loop detector
-                var waitingLsCs = new Dictionary<ArrowInfo, int>();
-
                 // CONNECTION LINES
-                while (q.Count > 0 || waitingLsCs.Count > 0)
+                if (miConnectionLines.Checked)
                 {
-                    ArrowInfo arr;
-                    var col = 6;
-                    var knownEmpty = false;
+                    // 1/2 = waiting with knownEmpty=false/true; 3 = released by loop detector
+                    var waitingLsCs = new Dictionary<ArrowInfo, int>();
 
-                    if (q.Count == 0)
+                    while (q.Count > 0 || waitingLsCs.Count > 0)
                     {
-                        arr = waitingLsCs.FirstOrDefault(kvp => kvp.Value != 3).Key;
-                        if (arr == null)
-                            System.Diagnostics.Debugger.Break();
-                        waitingLsCs[arr] = 3;
-                    }
-                    else
-                    {
-                        var item = q.Dequeue();
-                        arr = item.Item1;
-                        col = item.Item2;
-                        knownEmpty = item.Item3;
-                    }
-                    var flip = false;
+                        ArrowInfo arr;
+                        var col = 6;
+                        var knownEmpty = false;
 
-                    foreach (var dir in arr.Directions)
-                    {
-                        switch (instructionDic.Get(arr, "X"))
+                        if (q.Count == 0)
                         {
-                            case "0": col = 0; knownEmpty = false; break;
-
-                            case "Z1": col = flip ? 2 : 4; knownEmpty = false; break;
-                            case "E1": col = flip ? 2 : 4; knownEmpty = true; break;
-                            case "Z2": col = flip ? 4 : 2; knownEmpty = false; break;
-                            case "E2": col = flip ? 4 : 2; knownEmpty = true; break;
-
-                            case "R":
-                            case "X": col = 6; knownEmpty = false; break;
-
-                            case "C":
-                            case "L": col = 6; break;
-
-                            case "I": col = knownEmpty ? (col & ~1) : (col ^ 1); break;
+                            arr = waitingLsCs.FirstOrDefault(kvp => kvp.Value != 3).Key;
+                            if (arr == null)
+                                System.Diagnostics.Debugger.Break();
+                            waitingLsCs[arr] = 3;
                         }
-
-                        var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
-                        var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
-                        var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
-                        while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1)
+                        else
                         {
-                            toX -= dir.XOffset();
-                            toY -= dir.YOffset();
+                            var item = q.Dequeue();
+                            arr = item.Item1;
+                            col = item.Item2;
+                            knownEmpty = item.Item3;
                         }
-                        using (var pen = new Pen(colors[col].Item1, 1f) { EndCap = knownEmpty ? LineCap.RoundAnchor : LineCap.ArrowAnchor, DashStyle = colors[col].Item2 })
-                        {
-                            g.DrawLine(pen,
-                                cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize * 4 / 10,
-                                cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize * 4 / 10,
-                                cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10,
-                                cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
-                        }
+                        var flip = false;
 
-                        if (pointTo != null && instructionDic.ContainsKey(pointTo))
+                        foreach (var dir in arr.Directions)
                         {
-                            if (instructionDic[pointTo] == "N" || instructionDic[pointTo] == "I" || instructionDic[pointTo] == "S")
-                                q.Enqueue(Tuple.Create(pointTo, col, knownEmpty));
-                            else if (instructionDic[pointTo] == "L" || instructionDic[pointTo] == "C")
+                            switch (instructionDic.Get(arr, "X"))
                             {
-                                var prevKnownEmpty = true;
-                                switch (waitingLsCs.Get(pointTo, 0))
+                                case "0": col = 0; knownEmpty = false; break;
+
+                                case "Z1": col = flip ? 2 : 4; knownEmpty = false; break;
+                                case "E1": col = flip ? 2 : 4; knownEmpty = true; break;
+                                case "Z2": col = flip ? 4 : 2; knownEmpty = false; break;
+                                case "E2": col = flip ? 4 : 2; knownEmpty = true; break;
+
+                                case "R":
+                                case "X": col = 6; knownEmpty = false; break;
+
+                                case "C":
+                                case "L": col = 6; break;
+
+                                case "I": col = knownEmpty ? (col & ~1) : (col ^ 1); break;
+                            }
+
+                            var pointTo = getPointTo(arr.X, arr.Y, dir.XOffset(), dir.YOffset());
+                            var toX = pointTo == null ? arr.X + maxSize * dir.XOffset() : pointTo.X;
+                            var toY = pointTo == null ? arr.Y + maxSize * dir.YOffset() : pointTo.Y;
+                            while (toX < _paintMinX - 1 || toY < _paintMinY - 1 || toX > _paintMaxX + 1 || toY > _paintMaxY + 1)
+                            {
+                                toX -= dir.XOffset();
+                                toY -= dir.YOffset();
+                            }
+                            using (var pen = new Pen(colors[col].Item1, 1f) { EndCap = knownEmpty ? LineCap.RoundAnchor : LineCap.ArrowAnchor, DashStyle = colors[col].Item2 })
+                            {
+                                g.DrawLine(pen,
+                                    cellSize * (arr.X - _paintMinX) + cellSize / 2 + dir.XOffset() * cellSize * 4 / 10,
+                                    cellSize * (arr.Y - _paintMinY) + cellSize / 2 + dir.YOffset() * cellSize * 4 / 10,
+                                    cellSize * (toX - _paintMinX) + cellSize / 2 - dir.XOffset() * cellSize * 4 / 10,
+                                    cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
+                            }
+
+                            if (pointTo != null && instructionDic.ContainsKey(pointTo))
+                            {
+                                if (instructionDic[pointTo] == "N" || instructionDic[pointTo] == "I" || instructionDic[pointTo] == "S")
+                                    q.Enqueue(Tuple.Create(pointTo, col, knownEmpty));
+                                else if (instructionDic[pointTo] == "L" || instructionDic[pointTo] == "C")
                                 {
-                                    case 0:
-                                        waitingLsCs.Add(pointTo, knownEmpty ? 2 : 1);
-                                        break;
-                                    case 1:
-                                        prevKnownEmpty = false;
-                                        goto case 2;
-                                    case 2:
-                                        q.Enqueue(Tuple.Create(pointTo, col, knownEmpty && prevKnownEmpty));
-                                        goto case 3;
-                                    case 3:
-                                        waitingLsCs.Remove(pointTo);
-                                        break;
+                                    var prevKnownEmpty = true;
+                                    switch (waitingLsCs.Get(pointTo, 0))
+                                    {
+                                        case 0:
+                                            waitingLsCs.Add(pointTo, knownEmpty ? 2 : 1);
+                                            break;
+                                        case 1:
+                                            prevKnownEmpty = false;
+                                            goto case 2;
+                                        case 2:
+                                            q.Enqueue(Tuple.Create(pointTo, col, knownEmpty && prevKnownEmpty));
+                                            goto case 3;
+                                        case 3:
+                                            waitingLsCs.Remove(pointTo);
+                                            break;
+                                    }
                                 }
                             }
+                            flip = true;
                         }
-                        flip = true;
                     }
                 }
             }

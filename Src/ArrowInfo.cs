@@ -88,7 +88,7 @@ namespace ZiimHelper
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular)
         {
-            if (!AllArrows.Any(a => !a.IsTerminal))
+            if (AllArrows.All(a => a.IsTerminal))
                 return;
             int minX, maxX, minY, maxY;
             GetBounds(out minX, out maxX, out minY, out maxY);

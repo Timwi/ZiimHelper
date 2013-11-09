@@ -594,7 +594,8 @@ namespace ZiimHelper
         }
 
         private bool _draggingSelectionRectangle;
-        private bool _draggingLabelPosition;
+        private bool _draggingLabelPositionFrom;
+        private bool _draggingLabelPositionTo;
         private Point _mouseDown;
         private Point _mouseDraggedTo;
         private Item _mouseMoving;
@@ -642,14 +643,30 @@ namespace ZiimHelper
             }
             else if (miSetLabelPosition.Checked)
             {
+                var fromDist = dist(x - _editingCloud.LabelFromX, y - _editingCloud.LabelFromY);
+                var toDist = dist(x - _editingCloud.LabelToX, y - _editingCloud.LabelToY);
+
+                if (fromDist < toDist)
+                {
+                    _draggingLabelPositionFrom = true;
+                    _editingCloud.LabelFromX = x;
+                    _editingCloud.LabelFromY = y;
+                }
+                else
+                {
+                    _draggingLabelPositionTo = true;
+                    _editingCloud.LabelToX = x;
+                    _editingCloud.LabelToY = y;
+                }
+
                 _fileChanged = true;
-                _draggingLabelPosition = true;
-                _editingCloud.LabelFromX = x;
-                _editingCloud.LabelFromY = y;
-                _editingCloud.LabelToX = x;
-                _editingCloud.LabelToY = y;
                 refresh();
             }
+        }
+
+        private double dist(double xDist, double yDist)
+        {
+            return Math.Sqrt(xDist * xDist + yDist * yDist);
         }
 
         private static int divRoundDown(int dividend, int divisor)
@@ -670,7 +687,14 @@ namespace ZiimHelper
             if (x == _mouseDraggedTo.X && y == _mouseDraggedTo.Y)
                 return;
 
-            if (_draggingLabelPosition)
+            if (_draggingLabelPositionFrom)
+            {
+                _editingCloud.LabelFromX = x;
+                _editingCloud.LabelFromY = y;
+                refresh();
+                return;
+            }
+            else if (_draggingLabelPositionTo)
             {
                 _editingCloud.LabelToX = x;
                 _editingCloud.LabelToY = y;
@@ -709,7 +733,8 @@ namespace ZiimHelper
 
         private void mouseUp(object sender, MouseEventArgs e)
         {
-            _draggingLabelPosition = false;
+            _draggingLabelPositionFrom = _draggingLabelPositionTo = false;
+
             if (_draggingSelectionRectangle)
             {
                 if (!Ut.Shift)

@@ -77,6 +77,10 @@
             this.miOwnCloud = new System.Windows.Forms.ToolStripMenuItem();
             this.miInnerClouds = new System.Windows.Forms.ToolStripMenuItem();
             this.miCoordinates = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep7 = new System.Windows.Forms.ToolStripSeparator();
+            this.miResetZoom = new System.Windows.Forms.ToolStripMenuItem();
+            this.miZoomIn = new System.Windows.Forms.ToolStripMenuItem();
+            this.miZoomOut = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
@@ -447,7 +451,11 @@
             this.miAnnotations,
             this.miOwnCloud,
             this.miInnerClouds,
-            this.miCoordinates});
+            this.miCoordinates,
+            this.miSep7,
+            this.miResetZoom,
+            this.miZoomIn,
+            this.miZoomOut});
             this.mnuView.Name = "mnuView";
             this.mnuView.Size = new System.Drawing.Size(44, 20);
             this.mnuView.Text = "&View";
@@ -506,6 +514,37 @@
             this.miCoordinates.Size = new System.Drawing.Size(201, 22);
             this.miCoordinates.Text = "&Coordinates";
             this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
+            // 
+            // miSep7
+            // 
+            this.miSep7.Name = "miSep7";
+            this.miSep7.Size = new System.Drawing.Size(198, 6);
+            // 
+            // miResetZoom
+            // 
+            this.miResetZoom.Name = "miResetZoom";
+            this.miResetZoom.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D0)));
+            this.miResetZoom.Size = new System.Drawing.Size(201, 22);
+            this.miResetZoom.Text = "&Reset Zoom";
+            this.miResetZoom.Click += new System.EventHandler(this.resetZoom);
+            // 
+            // miZoomIn
+            // 
+            this.miZoomIn.Name = "miZoomIn";
+            this.miZoomIn.ShortcutKeyDisplayString = "Ctrl+=";
+            this.miZoomIn.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Oemplus)));
+            this.miZoomIn.Size = new System.Drawing.Size(201, 22);
+            this.miZoomIn.Text = "&Zoom in";
+            this.miZoomIn.Click += new System.EventHandler(this.zoomIn);
+            // 
+            // miZoomOut
+            // 
+            this.miZoomOut.Name = "miZoomOut";
+            this.miZoomOut.ShortcutKeyDisplayString = "Ctrl+-";
+            this.miZoomOut.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.OemMinus)));
+            this.miZoomOut.Size = new System.Drawing.Size(201, 22);
+            this.miZoomOut.Text = "Zoom &out";
+            this.miZoomOut.Click += new System.EventHandler(this.zoomOut);
             // 
             // mnuMode
             // 
@@ -625,6 +664,10 @@
         private System.Windows.Forms.ToolStripMenuItem miPaste;
         private System.Windows.Forms.ToolStripSeparator miSep6;
         private System.Windows.Forms.ToolStripMenuItem miEditMnemonics;
+        private System.Windows.Forms.ToolStripSeparator miSep7;
+        private System.Windows.Forms.ToolStripMenuItem miResetZoom;
+        private System.Windows.Forms.ToolStripMenuItem miZoomIn;
+        private System.Windows.Forms.ToolStripMenuItem miZoomOut;
     }
 }
 

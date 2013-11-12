@@ -59,6 +59,8 @@ namespace ZiimHelper
 
             setUi();
             setMode(ZiimHelperProgram.Settings.EditMode);
+
+            this.MouseWheel += mouseWheel;
         }
 
         private void deleteItem(object _, EventArgs __)
@@ -119,6 +121,8 @@ namespace ZiimHelper
         private Rectangle _paintTarget;
         private int _paintCellSize;
         private float _paintFontSize;
+        private float _zoomFactor = 1;
+        private int _scrollX, _scrollY;
 
         private void paintBuffer(object _, PaintEventArgs e)
         {
@@ -130,11 +134,15 @@ namespace ZiimHelper
 
             _editingCloud.GetBounds(out _paintMinX, out _paintMaxX, out _paintMinY, out _paintMaxY);
 
-            var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1).FitIntoMaintainAspectRatio(new Rectangle(margin, margin, ctImage.ClientSize.Width - 2 * margin, ctImage.ClientSize.Height - 2 * margin));
+            var fit = new Size(_paintMaxX - _paintMinX + 1, _paintMaxY - _paintMinY + 1)
+                .FitIntoMaintainAspectRatio(new Rectangle(
+                    margin, margin,
+                    (int) ((ctImage.ClientSize.Width - 2 * margin) * _zoomFactor),
+                    (int) ((ctImage.ClientSize.Height - 2 * margin) * _zoomFactor)));
             var w = fit.Width - fit.Width % (_paintMaxX - _paintMinX + 1);
             var h = fit.Height - fit.Height % (_paintMaxY - _paintMinY + 1);
 
-            _paintTarget = new Rectangle(ctImage.ClientSize.Width / 2 - w / 2, ctImage.ClientSize.Height / 2 - h / 2, w, h);
+            _paintTarget = new Rectangle(ctImage.ClientSize.Width / 2 - w / 2 - _scrollX, ctImage.ClientSize.Height / 2 - h / 2 - _scrollY, w, h);
             _paintCellSize = _paintTarget.Width / (_paintMaxX - _paintMinX + 1);
             _paintFontSize = "↑↗→↘↓↙←↖↕⤢↔⤡".Min(ch => e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), _arrowFont, ch.ToString()));
 
@@ -1275,6 +1283,45 @@ namespace ZiimHelper
             {
                 DlgMessage.Show("The contents of the clipboard cannot be pasted:{0}{0}{1}".Fmt(Environment.NewLine, e.Message), "Paste", DlgType.Error);
             }
+        }
+
+        private void resetZoom(object sender, EventArgs e)
+        {
+            _zoomFactor = 1;
+            _scrollX = 0;
+            _scrollY = 0;
+            refresh();
+        }
+
+        private void zoomIn(object sender, EventArgs e)
+        {
+            changeZoom(1.1);
+            refresh();
+        }
+
+        private void zoomOut(object sender, EventArgs e)
+        {
+            changeZoom(1 / 1.1);
+            refresh();
+        }
+
+        private void mouseWheel(object sender, MouseEventArgs e)
+        {
+            if (Ut.Ctrl)
+                changeZoom(Math.Pow(1.1, e.Delta / 120));
+            else if (Ut.Shift)
+                _scrollX -= e.Delta;
+            else
+                _scrollY -= e.Delta;
+            refresh();
+        }
+
+        private void changeZoom(double factor)
+        {
+            _zoomFactor *= (float) factor;
+            _scrollX = (int) (_scrollX * factor);
+            _scrollY = (int) (_scrollY * factor);
+            refresh();
         }
     }
 }

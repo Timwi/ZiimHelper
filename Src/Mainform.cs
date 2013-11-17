@@ -1021,6 +1021,8 @@ namespace ZiimHelper
                 if (dlg.ShowDialog() == DialogResult.Cancel)
                     return;
                 fileOpen(dlg.FileName);
+                _zoomFactor = 1;
+                _scrollX = _scrollY = 0;
                 return;
             }
         }

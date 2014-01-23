@@ -55,6 +55,9 @@
             this.miSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuEdit = new System.Windows.Forms.ToolStripMenuItem();
+            this.miUndo = new System.Windows.Forms.ToolStripMenuItem();
+            this.miRedo = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep8 = new System.Windows.Forms.ToolStripSeparator();
             this.miCut = new System.Windows.Forms.ToolStripMenuItem();
             this.miCopy = new System.Windows.Forms.ToolStripMenuItem();
             this.miPaste = new System.Windows.Forms.ToolStripMenuItem();
@@ -134,7 +137,7 @@
             this.miRotateClockwise.Name = "miRotateClockwise";
             this.miRotateClockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Right)));
             this.miRotateClockwise.Size = new System.Drawing.Size(258, 22);
-            this.miRotateClockwise.Text = "&Rotate clockwise";
+            this.miRotateClockwise.Text = "Rotate clock&wise";
             this.miRotateClockwise.Click += new System.EventHandler(this.rotate);
             // 
             // miRotateCounterclockwise
@@ -142,7 +145,7 @@
             this.miRotateCounterclockwise.Name = "miRotateCounterclockwise";
             this.miRotateCounterclockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Left)));
             this.miRotateCounterclockwise.Size = new System.Drawing.Size(258, 22);
-            this.miRotateCounterclockwise.Text = "Rotate counter-clock&wise";
+            this.miRotateCounterclockwise.Text = "Rotate counter-clockwi&se";
             this.miRotateCounterclockwise.Click += new System.EventHandler(this.rotate);
             // 
             // miMark
@@ -317,6 +320,9 @@
             // mnuEdit
             // 
             this.mnuEdit.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.miUndo,
+            this.miRedo,
+            this.miSep8,
             this.miCut,
             this.miCopy,
             this.miPaste,
@@ -343,12 +349,33 @@
             this.mnuEdit.Size = new System.Drawing.Size(39, 20);
             this.mnuEdit.Text = "&Edit";
             // 
+            // miUndo
+            // 
+            this.miUndo.Name = "miUndo";
+            this.miUndo.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Z)));
+            this.miUndo.Size = new System.Drawing.Size(258, 22);
+            this.miUndo.Text = "&Undo";
+            this.miUndo.Click += new System.EventHandler(this.undo);
+            // 
+            // miRedo
+            // 
+            this.miRedo.Name = "miRedo";
+            this.miRedo.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Y)));
+            this.miRedo.Size = new System.Drawing.Size(258, 22);
+            this.miRedo.Text = "&Redo";
+            this.miRedo.Click += new System.EventHandler(this.redo);
+            // 
+            // miSep8
+            // 
+            this.miSep8.Name = "miSep8";
+            this.miSep8.Size = new System.Drawing.Size(255, 6);
+            // 
             // miCut
             // 
             this.miCut.Name = "miCut";
             this.miCut.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.X)));
             this.miCut.Size = new System.Drawing.Size(258, 22);
-            this.miCut.Text = "C&ut";
+            this.miCut.Text = "Cu&t";
             this.miCut.Click += new System.EventHandler(this.cutOrCopy);
             // 
             // miCopy
@@ -389,7 +416,7 @@
             this.miToggleInput.Name = "miToggleInput";
             this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
             this.miToggleInput.Size = new System.Drawing.Size(258, 22);
-            this.miToggleInput.Text = "Toggle &terminal";
+            this.miToggleInput.Text = "Toggle t&erminal";
             this.miToggleInput.Click += new System.EventHandler(this.toggleTerminal);
             // 
             // miAnnotate
@@ -439,7 +466,7 @@
             // 
             this.miEditMnemonics.Name = "miEditMnemonics";
             this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
-            this.miEditMnemonics.Text = "egijnqsxyz";
+            this.miEditMnemonics.Text = "gijnqruxyz";
             this.miEditMnemonics.Visible = false;
             // 
             // mnuView
@@ -668,6 +695,9 @@
         private System.Windows.Forms.ToolStripMenuItem miResetZoom;
         private System.Windows.Forms.ToolStripMenuItem miZoomIn;
         private System.Windows.Forms.ToolStripMenuItem miZoomOut;
+        private System.Windows.Forms.ToolStripMenuItem miUndo;
+        private System.Windows.Forms.ToolStripMenuItem miRedo;
+        private System.Windows.Forms.ToolStripSeparator miSep8;
     }
 }
 

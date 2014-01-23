@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="ArrowInfo.cs" />
     <Compile Include="ColorClassifyOptions.cs" />
+    <Compile Include="UserAction.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Extensions.cs" />

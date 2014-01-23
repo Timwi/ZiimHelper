@@ -15,6 +15,8 @@ namespace ZiimHelper
 
         public Color FromSubstitute(string instance)
         {
+            if (instance == null)
+                return Color.Black;
             var match = Regex.Match(instance, @"^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})(:([0-9a-f]{2}))?$", RegexOptions.IgnoreCase);
             if (!match.Success)
                 return Color.Black;

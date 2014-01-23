@@ -27,6 +27,8 @@ namespace ZiimHelper
         private string _filename = null;
         private bool _fileChanged = false;
         private HashSet<Item> _selected = new HashSet<Item>();
+        private Stack<UserAction> _undo = new Stack<UserAction>();
+        private Stack<UserAction> _redo = new Stack<UserAction>();
 
         private FontFamily _arrowFont = new FontFamily("Cambria");
         private FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
@@ -67,10 +69,7 @@ namespace ZiimHelper
         {
             if (_selected.Count == 0)
                 return;
-            _editingCloud.Items.RemoveAll(_selected.Contains);
-            _selected.Clear();
-            _fileChanged = true;
-            refresh();
+            Do(new AddOrRemoveItems(ActionType.Remove, _selected, _editingCloud));
         }
 
         private void paint(object _, PaintEventArgs e)
@@ -96,9 +95,8 @@ namespace ZiimHelper
             }
             else if (_arrowReorienting != null)
             {
-                var t = _paintTarget.Location + new Size(-_paintMinX * _paintCellSize, -_paintMinY * _paintCellSize);
-                using (var tr = new GraphicsTransformer(e.Graphics).Translate(t.X, t.Y))
-                    _arrowReorienting.DrawReorienting(e.Graphics, _paintCellSize);
+                using (var tr = new GraphicsTransformer(e.Graphics).Translate(_paintTarget.X, _paintTarget.Y))
+                    drawArrow(e.Graphics, _arrowReorienting, _editingCloud, _paintCellSize, _paintFontSize, _editingCloud.Items.Contains(_arrowReorienting) ? Brushes.Orange : Brushes.Green);
             }
             else if (miSetLabelPosition.Checked)
             {
@@ -438,13 +436,7 @@ namespace ZiimHelper
 
                     // ARROWS (including terminals)
                     if (!arrow.IsTerminal || (parentCloud == _editingCloud ? miOwnCloud : miInnerClouds).Checked)
-                        g.DrawString(
-                            arrow.Character.ToString(),
-                            new Font(_arrowFont, fontSize),
-                            arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : arrow.Marked ? Brushes.Red : Brushes.Black,
-                            (arrow.X - _paintMinX) * cellSize + cellSize / 2, (arrow.Y - _paintMinY) * cellSize + cellSize / 2,
-                            Util.CenterCenter
-                        );
+                        drawArrow(g, arrow, parentCloud, cellSize, fontSize);
 
                     // ANNOTATIONS for TERMINALS
                     if (arrow.IsTerminal && arrow.Annotation != null && (parentCloud == _editingCloud ? miOwnCloud : miInnerClouds).Checked)
@@ -481,6 +473,17 @@ namespace ZiimHelper
                         Util.CenterCenter);
         }
 
+        private void drawArrow(Graphics g, ArrowInfo arrow, Cloud parentCloud, int cellSize, float fontSize, Brush brush = null)
+        {
+            g.DrawString(
+                arrow.Character.ToString(),
+                new Font(_arrowFont, fontSize),
+                arrow.IsTerminal ? new SolidBrush(parentCloud.Color) : (brush ?? (arrow.Marked ? Brushes.Red : Brushes.Black)),
+                (arrow.X - _paintMinX) * cellSize + cellSize / 2, (arrow.Y - _paintMinY) * cellSize + cellSize / 2,
+                Util.CenterCenter
+            );
+        }
+
         private ArrowInfo getPointTo(int x, int y, int xOffset, int yOffset)
         {
             do
@@ -500,41 +503,12 @@ namespace ZiimHelper
             if (_selected.Count == 0)
                 return;
 
-            if (_selected.Count == 1 && _selected.Single() is ArrowInfo)
-            {
-                ((ArrowInfo) _selected.Single()).Rotate(sender == miRotateClockwise);
-                _fileChanged = true;
-                refresh();
-                return;
-            }
-
-            var minX = _selected.SelectMany(itm => itm.AllArrows).Min(a => a.X);
-            var minY = _selected.SelectMany(itm => itm.AllArrows).Min(a => a.Y);
-            var maxX = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.X);
-            var maxY = _selected.SelectMany(itm => itm.AllArrows).Max(a => a.Y);
-            var fix = Ut.Lambda((int x, int y, Action<int> setX, Action<int> setY) =>
-            {
-                setX(sender == miRotateClockwise ? minX + (maxY - minY) - y + minY : minX + y - minY);
-                setY(sender == miRotateClockwise ? minY + x - minX : minY + (maxX - minX) - x + minX);
-            });
-
-            foreach (var item in _selected.SelectMany(itm => itm.AllItems))
-            {
-                Ut.IfType(item,
-                    (ArrowInfo arrow) =>
-                    {
-                        fix(arrow.X, arrow.Y, x => { arrow.X = x; }, y => { arrow.Y = y; });
-                        arrow.Rotate(sender == miRotateClockwise);
-                        arrow.Rotate(sender == miRotateClockwise);
-                    },
-                    (Cloud cloud) =>
-                    {
-                        fix(cloud.LabelFromX, cloud.LabelFromY, x => { cloud.LabelFromX = x; }, y => { cloud.LabelFromY = y; });
-                        fix(cloud.LabelToX, cloud.LabelToY, x => { cloud.LabelToX = x; }, y => { cloud.LabelToY = y; });
-                    },
-                    wrongType => { throw new InvalidOperationException("Unexpected type of item."); });
-            }
-            refresh();
+            var clockwise = sender == miRotateClockwise;
+            ArrowInfo singleArrow;
+            if (_selected.Count == 1 && (singleArrow = _selected.Single() as ArrowInfo) != null)
+                Do(new RotateArrow(singleArrow, clockwise));
+            else
+                Do(new RotateItems(_selected.SelectMany(itm => itm.AllItems), clockwise));
         }
 
         private bool _requireRefresh = false;
@@ -607,7 +581,14 @@ namespace ZiimHelper
         private Point _mouseDown;
         private Point _mouseDraggedTo;
         private Item _mouseMoving;
+        private int _mouseOldX;
+        private int _mouseOldY;
+
+        // If non-null, the user is currently dragging the mouse to rotate (reorient) an arrow.
+        // If this arrow is contained in _editingCloud.Items, the arrow already existed, otherwise it will be added during mouseUp.
         private ArrowInfo _arrowReorienting;
+        private Direction _arrowReorientingOriginalDirection;
+        private DoubleDirection _arrowReorientingOriginalDoubleDirection;
 
         private void mouseDown(object sender, MouseEventArgs e)
         {
@@ -632,22 +613,20 @@ namespace ZiimHelper
             }
             else if (miDraw.Checked)
             {
-                _fileChanged = true;
                 if (clickedOn is ArrowInfo)
                 {
+                    // Existing arrow: reorient it
                     _arrowReorienting = (ArrowInfo) clickedOn;
-                    _selected.Clear();
-                    _selected.Add(clickedOn);
-                    ctImage.Invalidate();
+                    if (clickedOn is SingleArrowInfo)
+                        _arrowReorientingOriginalDirection = ((SingleArrowInfo) clickedOn).Direction;
+                    else
+                        _arrowReorientingOriginalDoubleDirection = ((DoubleArrowInfo) clickedOn).Direction;
                 }
                 else
-                {
+                    // Create a new arrow; it will be added to _editingCloud.Items during mouse up
                     _arrowReorienting = Ut.Shift ? (ArrowInfo) new DoubleArrowInfo { X = x, Y = y } : new SingleArrowInfo { X = x, Y = y };
-                    _editingCloud.Items.Add(_arrowReorienting);
-                    _selected.Clear();
-                    _selected.Add(_arrowReorienting);
-                    refresh();
-                }
+                _selected.Clear();
+                ctImage.Invalidate();
             }
             else if (miSetLabelPosition.Checked)
             {
@@ -656,18 +635,20 @@ namespace ZiimHelper
 
                 if (fromDist < toDist)
                 {
+                    _mouseOldX = _editingCloud.LabelFromX;
+                    _mouseOldY = _editingCloud.LabelFromY;
                     _draggingLabelPositionFrom = true;
                     _editingCloud.LabelFromX = x;
                     _editingCloud.LabelFromY = y;
                 }
                 else
                 {
+                    _mouseOldX = _editingCloud.LabelToX;
+                    _mouseOldY = _editingCloud.LabelToY;
                     _draggingLabelPositionTo = true;
                     _editingCloud.LabelToX = x;
                     _editingCloud.LabelToY = y;
                 }
-
-                _fileChanged = true;
                 refresh();
             }
         }
@@ -697,15 +678,15 @@ namespace ZiimHelper
 
             if (_draggingLabelPositionFrom)
             {
-                _editingCloud.LabelFromX = x;
-                _editingCloud.LabelFromY = y;
+                _mouseDraggedTo.X = _editingCloud.LabelFromX = x;
+                _mouseDraggedTo.Y = _editingCloud.LabelFromY = y;
                 refresh();
                 return;
             }
             else if (_draggingLabelPositionTo)
             {
-                _editingCloud.LabelToX = x;
-                _editingCloud.LabelToY = y;
+                _mouseDraggedTo.X = _editingCloud.LabelToX = x;
+                _mouseDraggedTo.Y = _editingCloud.LabelToY = y;
                 refresh();
                 return;
             }
@@ -720,12 +701,7 @@ namespace ZiimHelper
             if (_draggingSelectionRectangle)
                 ctImage.Invalidate();
             else if (_mouseMoving != null)
-            {
-                foreach (var item in _selected)
-                    item.Move(deltaX, deltaY);
-                refresh();
-                _fileChanged = true;
-            }
+                Do(_selected.Select(item => item.GetMoveAction(deltaX, deltaY)));
             else if (_arrowReorienting != null)
             {
                 _arrowReorienting.Reorient(
@@ -734,16 +710,23 @@ namespace ZiimHelper
                     y - _arrowReorienting.Y > 2 * (_arrowReorienting.X - x),     // /
                     2 * (y - _arrowReorienting.Y) > _arrowReorienting.X - x     // _/~
                 );
-                refresh();
-                _fileChanged = true;
+                ctImage.Invalidate();
             }
         }
 
         private void mouseUp(object sender, MouseEventArgs e)
         {
-            _draggingLabelPositionFrom = _draggingLabelPositionTo = false;
-
-            if (_draggingSelectionRectangle)
+            if (_draggingLabelPositionFrom)
+            {
+                Do(new MoveLabel(_editingCloud, true, _mouseOldX, _mouseOldY, _editingCloud.LabelFromX, _editingCloud.LabelFromY));
+                _draggingLabelPositionFrom = false;
+            }
+            else if (_draggingLabelPositionTo)
+            {
+                Do(new MoveLabel(_editingCloud, false, _mouseOldX, _mouseOldY, _editingCloud.LabelToX, _editingCloud.LabelToY));
+                _draggingLabelPositionTo = false;
+            }
+            else if (_draggingSelectionRectangle)
             {
                 if (!Ut.Shift)
                     _selected.Clear();
@@ -766,10 +749,39 @@ namespace ZiimHelper
                 _draggingSelectionRectangle = false;
                 ctImage.Invalidate();
             }
-            else if (_mouseMoving != null || _arrowReorienting != null)
+            else if (_arrowReorienting != null)
+            {
+                if (_editingCloud.Items.Contains(_arrowReorienting))
+                {
+                    // An existing arrow is reoriented
+                    _arrowReorienting.IfType(
+                        (SingleArrowInfo sa) =>
+                        {
+                            if (_arrowReorientingOriginalDirection != sa.Direction)
+                                Do(new ReorientSingleArrow(sa, _arrowReorientingOriginalDirection, sa.Direction));
+                            else
+                                _selected.Add(_arrowReorienting);
+                        },
+                        (DoubleArrowInfo da) =>
+                        {
+                            if (_arrowReorientingOriginalDoubleDirection != da.Direction)
+                                Do(new ReorientDoubleArrow(da, _arrowReorientingOriginalDoubleDirection, da.Direction));
+                            else
+                                _selected.Add(_arrowReorienting);
+                        },
+                        arrow => { throw new InvalidOperationException("Unknown arrow type."); });
+                }
+                else
+                {
+                    // A new arrow is created
+                    Do(new AddOrRemoveItems(ActionType.Add, _arrowReorienting, _editingCloud));
+                }
+                _arrowReorienting = null;
+                refresh();
+            }
+            else if (_mouseMoving != null)
             {
                 _mouseMoving = null;
-                _arrowReorienting = null;
                 ctImage.Invalidate();
             }
         }
@@ -800,18 +812,9 @@ namespace ZiimHelper
             refresh();
         }
 
-        private sealed class arrowException : Exception
-        {
-            public ArrowInfo Arrow { get; private set; }
-            public arrowException(ArrowInfo arrow, string message) : base(message) { Arrow = arrow; }
-        }
-
         private void toggleMark(object sender, EventArgs e)
         {
-            foreach (var arrow in _selected.SelectMany(itm => itm.AllArrows))
-                arrow.Marked = !arrow.Marked;
-            _fileChanged = true;
-            refresh();
+            Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ToggleMark(arrow))));
         }
 
         private void copySource(object sender, EventArgs e)
@@ -889,7 +892,8 @@ namespace ZiimHelper
                     {
                         var trySize = high == null ? low + 1024 : (low + high.Value) / 2;
                         var tryFont = new Font(_arrowFont, trySize, FontStyle.Bold);
-                        var size = "↖↑↗→↘↓↙←↕⤢↔⤡".Select(ch => g.MeasureString(ch.ToString(), tryFont)).Max(sz => sz.Width);
+                        var sizes = "↖↑↗→↘↓↙←↕⤢↔⤡".Select(ch => g.MeasureString(ch.ToString(), tryFont)).Select(sz => sz.Width).ToArray();
+                        var size = sizes.Max();
                         if (size * (sender == miCopyImageByWidth ? _paintMaxX - _paintMinX + 1 : _paintMaxY - _paintMinY + 1) > input)
                             high = trySize;
                         else
@@ -930,14 +934,7 @@ namespace ZiimHelper
             var annotation = _selected.SelectMany(itm => itm.AllArrows).Select(arr => arr.Annotation).FirstOrDefault(ann => !string.IsNullOrWhiteSpace(ann));
             var newAnnotation = InputBox.GetLine("Annotation:", annotation ?? "", "Annotation", "&OK", "&Cancel");
             if (newAnnotation != null)
-            {
-                foreach (var arr in _selected.SelectMany(itm => itm.AllArrows))
-                {
-                    arr.Annotation = string.IsNullOrWhiteSpace(newAnnotation) ? null : newAnnotation;
-                    _fileChanged = true;
-                }
-                refresh();
-            }
+                Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ArrowAnnotation(arrow, arrow.Annotation, newAnnotation))));
         }
 
         private void toggleViewOption(object sender, EventArgs __)
@@ -989,6 +986,8 @@ namespace ZiimHelper
             _outerClouds.Clear();
             _selected.Clear();
             _fileChanged = false;
+            _undo.Clear();
+            _redo.Clear();
             refresh();
         }
 
@@ -1027,43 +1026,49 @@ namespace ZiimHelper
             }
         }
 
+        private Cloud readFile(ref string filename)
+        {
+            var text = File.ReadAllText(filename);
+            if (!text.All(ch => " \r\n↖↑↗→↘↓↙←↕⤢↔⤡".Contains(ch)))
+                return ClassifyXml.DeserializeFile<Cloud>(filename, _classifyOptions);
+
+            // treat as plain-text program
+            var arrows = text.Replace("\r", "").Split('\n')
+                .SelectMany((line, lineNumber) => line.SelectMany((ch, chIndex) =>
+                {
+                    var p = "↑↗→↘↓↙←↖".IndexOf(ch);
+                    if (p != -1)
+                        return new ArrowInfo[] { new SingleArrowInfo { X = chIndex, Y = lineNumber, Direction = (Direction) p, IsTerminalArrow = false, Marked = false } };
+                    p = "↕⤢↔⤡".IndexOf(ch);
+                    if (p != -1)
+                        return new ArrowInfo[] { new DoubleArrowInfo { X = chIndex, Y = lineNumber, Direction = (DoubleDirection) p, Marked = false } };
+                    return Enumerable.Empty<ArrowInfo>();
+                }));
+
+            // Next time this is saved, save it as XML
+            filename = filename + "x";
+            return new Cloud(arrows);
+        }
+
         private void fileOpen(string filename)
         {
             try
             {
-                var text = File.ReadAllText(filename);
-                if (text.All(ch => " \r\n↖↑↗→↘↓↙←↕⤢↔⤡".Contains(ch)))
-                {
-                    // treat as plain-text program
-                    var arrows = text.Replace("\r", "").Split('\n')
-                        .SelectMany((line, lineNumber) => line.SelectMany((ch, chIndex) =>
-                        {
-                            var p = "↑↗→↘↓↙←↖".IndexOf(ch);
-                            if (p != -1)
-                                return new ArrowInfo[] { new SingleArrowInfo { X = chIndex, Y = lineNumber, Direction = (Direction) p, IsTerminalArrow = false, Marked = false } };
-                            p = "↕⤢↔⤡".IndexOf(ch);
-                            if (p != -1)
-                                return new ArrowInfo[] { new DoubleArrowInfo { X = chIndex, Y = lineNumber, Direction = (DoubleDirection) p, Marked = false } };
-                            return Enumerable.Empty<ArrowInfo>();
-                        }));
-                    _file = new Cloud(arrows);
-                    _filename = filename + "x";
-                }
-                else
-                {
-                    _file = ClassifyXml.DeserializeFile<Cloud>(filename, _classifyOptions);
-                    _filename = filename;
-                }
-                _editingCloud = _file;
-                _outerClouds.Clear();
+                var cloud = readFile(ref filename);
+                _file = cloud;
             }
             catch (Exception e)
             {
                 DlgMessage.Show("The file could not be opened:\n\n" + e.Message, "Error", DlgType.Error);
                 return;
             }
+            _filename = filename;
+            _editingCloud = _file;
+            _outerClouds.Clear();
             _selected.Clear();
             _fileChanged = false;
+            _undo.Clear();
+            _redo.Clear();
             refresh();
         }
 
@@ -1095,33 +1100,27 @@ namespace ZiimHelper
 
         private void move(object sender, EventArgs __)
         {
-            var xOffset = sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0;
-            var yOffset = sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0;
-            foreach (var item in _selected)
-                item.Move(xOffset, yOffset);
-            _fileChanged = true;
-            refresh();
+            Do(_selected.Select(item => item.GetMoveAction(
+                sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0,
+                sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0)));
         }
 
         private void previewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            setCursor();
-
             if (e.KeyData == Keys.Back)
-            {
                 backToOuterCloud();
-                return;
-            }
-
-            var xOffset = e.KeyData == Keys.Left ? -1 : e.KeyData == Keys.Right ? 1 : 0;
-            var yOffset = e.KeyData == Keys.Up ? -1 : e.KeyData == Keys.Down ? 1 : 0;
-            if (xOffset != 0 || yOffset != 0)
+            else if (e.KeyData == (Keys.Back | Keys.Alt))
+                undo();
+            else if (e.KeyData == (Keys.Back | Keys.Alt | Keys.Shift))
+                redo();
+            else
             {
-                foreach (var item in _selected)
-                    item.Move(xOffset, yOffset);
-                _fileChanged = true;
-                refresh();
+                var xOffset = e.KeyData == Keys.Left ? -1 : e.KeyData == Keys.Right ? 1 : 0;
+                var yOffset = e.KeyData == Keys.Up ? -1 : e.KeyData == Keys.Down ? 1 : 0;
+                if (xOffset != 0 || yOffset != 0)
+                    Do(_selected.Select(item => item.GetMoveAction(xOffset, yOffset)));
             }
+            setCursor();
         }
 
         private void backToOuterCloud(object _ = null, EventArgs __ = null)
@@ -1157,54 +1156,17 @@ namespace ZiimHelper
             {
                 if (dlg.ShowDialog() == DialogResult.Cancel)
                     return;
-                Cloud file;
                 try
                 {
-                    file = ClassifyXml.DeserializeFile<Cloud>(dlg.FileName, _classifyOptions);
+                    var filename = dlg.FileName;
+                    var file = readFile(ref filename);
+                    Do(new AddOrRemoveItems(ActionType.Add, file, _editingCloud));
                 }
                 catch (Exception e)
                 {
                     DlgMessage.Show("The file could not be opened:\n\n" + e.Message, "Error", DlgType.Error);
                     return;
                 }
-                jiggle(file);
-                _editingCloud.Items.Add(file);
-                _selected.Clear();
-                _selected.Add(file);
-                _fileChanged = true;
-                refresh();
-            }
-        }
-
-        private void jiggle(params Item[] items)
-        {
-            var squaresTaken = new Dictionary<int, HashSet<int>>();
-            foreach (var arrow in _editingCloud.AllArrows)
-                squaresTaken.AddSafe(arrow.X, arrow.Y);
-            int radius = 0, px = 0, py = 0;
-            while (items.SelectMany(item => item.AllArrows).Any(arr => squaresTaken.Contains(arr.X, arr.Y)))
-            {
-                int x = px, y = px;
-                if (x == radius)
-                {
-                    if (y == radius)
-                    {
-                        radius++;
-                        x = -radius;
-                        y = -radius;
-                    }
-                    else
-                    {
-                        x = 0;
-                        y++;
-                    }
-                }
-                else
-                    x++;
-                foreach (var item in items)
-                    item.Move(x - px, y - py);
-                px = x;
-                py = y;
             }
         }
 
@@ -1225,23 +1187,20 @@ namespace ZiimHelper
             using (var dlg = new ColorDialog { Color = _editingCloud.Color })
             {
                 var result = dlg.ShowDialog();
-                if (result == DialogResult.Cancel)
-                    return;
-                _editingCloud.Color = dlg.Color;
-                _fileChanged = true;
-                refresh();
+                if (result == DialogResult.OK && dlg.Color != _editingCloud.Color)
+                    Do(new CloudColor(_editingCloud, _editingCloud.Color, dlg.Color));
             }
         }
 
         private void setLabel(object _, EventArgs __)
         {
             var text = InputBox.GetLine("Enter text:", _editingCloud.Label ?? "", useMultilineBox: true);
-            if (text != null)
-            {
-                _editingCloud.Label = string.IsNullOrEmpty(text) ? null : text;
-                _fileChanged = true;
-                refresh();
-            }
+            if (text == null)
+                return;
+            if (string.IsNullOrWhiteSpace(text))
+                text = null;
+            if (text != _editingCloud.Label)
+                Do(new CloudLabel(_editingCloud, _editingCloud.Label, text));
         }
 
         private void editInnerCloud(object sender, EventArgs e)
@@ -1258,15 +1217,11 @@ namespace ZiimHelper
 
         private void cutOrCopy(object sender, EventArgs __)
         {
-            if (_selected.Count > 0)
-                Clipboard.SetText(ClassifyXml.Serialize(_selected.ToArray(), _classifyOptions).ToString());
+            if (_selected.Count == 0)
+                return;
+            Clipboard.SetText(ClassifyXml.Serialize(_selected.ToArray(), _classifyOptions).ToString());
             if (sender == miCut)
-            {
-                _editingCloud.Items.RemoveAll(_selected.Contains);
-                _selected.Clear();
-                _fileChanged = true;
-                refresh();
-            }
+                Do(new AddOrRemoveItems(ActionType.Remove, _selected, _editingCloud));
         }
 
         private void paste(object _, EventArgs __)
@@ -1274,12 +1229,7 @@ namespace ZiimHelper
             try
             {
                 var clipboard = ClassifyXml.Deserialize<Item[]>(XElement.Parse(Clipboard.GetText()), _classifyOptions);
-                jiggle(clipboard);
-                _editingCloud.Items.AddRange(clipboard);
-                _selected.Clear();
-                _selected.AddRange(clipboard);
-                _fileChanged = true;
-                refresh();
+                Do(new AddOrRemoveItems(ActionType.Add, clipboard, _editingCloud));
             }
             catch (Exception e)
             {
@@ -1323,6 +1273,40 @@ namespace ZiimHelper
             _zoomFactor *= (float) factor;
             _scrollX = (int) (_scrollX * factor);
             _scrollY = (int) (_scrollY * factor);
+            refresh();
+        }
+
+        private void undo(object _ = null, EventArgs __ = null)
+        {
+            if (_undo.Count == 0)
+                return;
+            var action = _undo.Pop();
+            action.Undo(_selected);
+            _redo.Push(action);
+            refresh();
+        }
+
+        private void redo(object _ = null, EventArgs __ = null)
+        {
+            if (_redo.Count == 0)
+                return;
+            var action = _redo.Pop();
+            action.Do(_selected);
+            _undo.Push(action);
+            refresh();
+        }
+
+        private void Do(IEnumerable<UserAction> actions)
+        {
+            Do(new MultiAction(actions));
+        }
+
+        private void Do(UserAction action)
+        {
+            _fileChanged = true;
+            _undo.Push(action);
+            _redo.Clear();
+            action.Do(_selected);
             refresh();
         }
     }

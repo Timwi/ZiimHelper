@@ -16,7 +16,7 @@ namespace ZiimHelper
         public abstract IEnumerable<Item> AllItems { get; }
         public abstract IEnumerable<ArrowInfo> AllArrows { get; }
         public abstract IEnumerable<Cloud> AllClouds { get; }
-        public abstract void Move(int deltaX, int deltaY);
+        public abstract UserAction GetMoveAction(int deltaX, int deltaY);
         public abstract void DrawSelected(Graphics g, int cellSize);
         public abstract bool IsContainedIn(int minX, int minY, int maxX, int maxY);
         public abstract void GetBounds(out int minX, out int maxX, out int minY, out int maxY);
@@ -43,14 +43,12 @@ namespace ZiimHelper
                              Items.OfType<Cloud>().SelectMany(cloud => cloud.ArrowsWithParents));
             }
         }
-        public override void Move(int deltaX, int deltaY)
+        public override UserAction GetMoveAction(int deltaX, int deltaY)
         {
-            foreach (var item in Items)
-                item.Move(deltaX, deltaY);
-            LabelFromX += deltaX;
-            LabelToX += deltaX;
-            LabelFromY += deltaY;
-            LabelToY += deltaY;
+            return new MultiAction(
+                Items.Select(item => item.GetMoveAction(deltaX, deltaY))
+                    .Concat(new MoveLabel(this, true, LabelFromX, LabelFromY, LabelFromX + deltaX, LabelFromY + deltaY))
+                    .Concat(new MoveLabel(this, false, LabelToX, LabelToY, LabelToX + deltaX, LabelToY + deltaY)));
         }
         public override void GetBounds(out int minX, out int maxX, out int minY, out int maxY)
         {
@@ -215,14 +213,8 @@ namespace ZiimHelper
         }
         public override string ToString() { return CoordsString + (Annotation == null ? "" : " " + Annotation) + (Marked ? " [M] " : " ") + Character; }
         public abstract void Rotate(bool clockwise);
-        public override void Move(int deltaX, int deltaY) { X += deltaX; Y += deltaY; }
+        public override UserAction GetMoveAction(int deltaX, int deltaY) { return new MoveArrow(this, X, Y, X + deltaX, Y + deltaY); }
         public abstract void Reorient(bool a, bool b, bool c, bool d);
-        public void DrawReorienting(Graphics g, int cellSize)
-        {
-            var rect = new Rectangle(cellSize * X, cellSize * Y, cellSize, cellSize);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(32, 128, 32, 192)), rect);
-            g.DrawEllipse(new Pen(Brushes.Green, 3), rect);
-        }
         public override void DrawSelected(Graphics g, int cellSize)
         {
             g.DrawEllipse(new Pen(Brushes.Blue, 2), X * cellSize + cellSize / 10, Y * cellSize + cellSize / 10, cellSize * 8 / 10, cellSize * 8 / 10);

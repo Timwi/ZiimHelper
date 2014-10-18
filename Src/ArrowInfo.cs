@@ -7,7 +7,6 @@ using RT.Util;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Serialization;
-using RT.Util.Xml;
 
 namespace ZiimHelper
 {
@@ -81,7 +80,7 @@ namespace ZiimHelper
             drawCloud(g, cellSize, fill: true, margin: cellSize / 10, style: own ? FontStyle.Bold : FontStyle.Regular);
         }
 
-        [XmlIgnore]
+        [ClassifyIgnore]
         private static FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular)
@@ -193,9 +192,9 @@ namespace ZiimHelper
     {
         public int X { get; set; }
         public int Y { get; set; }
-        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
+        [ClassifyIgnoreIfDefault]
         public bool Marked { get; set; }
-        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
+        [ClassifyIgnoreIfDefault]
         public string Annotation { get; set; }
         public string CoordsString { get { return "(" + X + ", " + Y + ")"; } }
         public abstract char Character { get; }
@@ -229,7 +228,7 @@ namespace ZiimHelper
     class SingleArrowInfo : ArrowInfo
     {
         public Direction Direction { get; set; }
-        [XmlIgnoreIfDefault, ClassifyIgnoreIfDefault]
+        [ClassifyIgnoreIfDefault]
         public bool IsTerminalArrow { get; set; }
         public override char Character { get { return IsTerminalArrow ? Direction.ToCharDouble() : Direction.ToChar(); } }
         public override void Rotate(bool clockwise) { Direction = (Direction) (((int) Direction + (clockwise ? 1 : 7)) % 8); }

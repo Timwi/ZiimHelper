@@ -812,9 +812,10 @@ namespace ZiimHelper
             refresh();
         }
 
-        private void toggleMark(object sender, EventArgs e)
+        private void toggleMark(object _, EventArgs __)
         {
-            Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ToggleMark(arrow))));
+            if (_selected.Count > 0)
+                Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ToggleMark(arrow))));
         }
 
         private void copySource(object sender, EventArgs e)
@@ -934,7 +935,7 @@ namespace ZiimHelper
             var annotation = _selected.SelectMany(itm => itm.AllArrows).Select(arr => arr.Annotation).FirstOrDefault(ann => !string.IsNullOrWhiteSpace(ann));
             var newAnnotation = InputBox.GetLine("Annotation:", annotation ?? "", "Annotation", "&OK", "&Cancel");
             if (newAnnotation != null)
-                Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ArrowAnnotation(arrow, arrow.Annotation, newAnnotation))));
+                Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ArrowAnnotation(arrow, arrow.Annotation, newAnnotation == "" ? null : newAnnotation))));
         }
 
         private void toggleViewOption(object sender, EventArgs __)
@@ -1100,9 +1101,10 @@ namespace ZiimHelper
 
         private void move(object sender, EventArgs __)
         {
-            Do(_selected.Select(item => item.GetMoveAction(
-                sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0,
-                sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0)));
+            if (_selected.Count > 0)
+                Do(_selected.Select(item => item.GetMoveAction(
+                    sender == miMoveLeft ? -1 : sender == miMoveRight ? 1 : 0,
+                    sender == miMoveUp ? -1 : sender == miMoveDown ? 1 : 0)));
         }
 
         private void previewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -1113,7 +1115,7 @@ namespace ZiimHelper
                 undo();
             else if (e.KeyData == (Keys.Back | Keys.Alt | Keys.Shift))
                 redo();
-            else
+            else if (_selected.Count > 0)
             {
                 var xOffset = e.KeyData == Keys.Left ? -1 : e.KeyData == Keys.Right ? 1 : 0;
                 var yOffset = e.KeyData == Keys.Up ? -1 : e.KeyData == Keys.Down ? 1 : 0;
@@ -1159,8 +1161,8 @@ namespace ZiimHelper
                 try
                 {
                     var filename = dlg.FileName;
-                    var file = readFile(ref filename);
-                    Do(new AddOrRemoveItems(ActionType.Add, file, _editingCloud));
+                    var cloud = readFile(ref filename);
+                    Do(new AddOrRemoveItems(ActionType.Add, cloud, _editingCloud));
                 }
                 catch (Exception e)
                 {
@@ -1172,14 +1174,9 @@ namespace ZiimHelper
 
         private void toggleTerminal(object _, EventArgs __)
         {
-            bool any = false;
-            foreach (var singleArrow in _selected.OfType<SingleArrowInfo>())
-            {
-                singleArrow.IsTerminalArrow = !singleArrow.IsTerminal;
-                any = true;
-            }
-            if (any)
-                refresh();
+            var actions = _selected.SelectMany(itm => itm.AllArrows).OfType<SingleArrowInfo>().Select(arrow => new ToggleTerminal(arrow));
+            if (actions.Any())
+                Do(new MultiAction(actions));
         }
 
         private void cloudColor(object _, EventArgs __)
@@ -1281,7 +1278,8 @@ namespace ZiimHelper
             if (_undo.Count == 0)
                 return;
             var action = _undo.Pop();
-            action.Undo(_selected);
+            action.Undo();
+            _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             _redo.Push(action);
             refresh();
         }
@@ -1291,7 +1289,8 @@ namespace ZiimHelper
             if (_redo.Count == 0)
                 return;
             var action = _redo.Pop();
-            action.Do(_selected);
+            action.Do();
+            _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             _undo.Push(action);
             refresh();
         }
@@ -1306,7 +1305,8 @@ namespace ZiimHelper
             _fileChanged = true;
             _undo.Push(action);
             _redo.Clear();
-            action.Do(_selected);
+            action.Do();
+            _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             refresh();
         }
     }

@@ -10,8 +10,9 @@ namespace ZiimHelper
 {
     abstract class UserAction
     {
-        public abstract void Do(HashSet<Item> selected);
-        public abstract void Undo(HashSet<Item> selected);
+        public abstract void Do();
+        public abstract void Undo();
+        public abstract IEnumerable<Item> Selection { get; }
     }
 
     sealed class MultiAction : UserAction
@@ -19,26 +20,19 @@ namespace ZiimHelper
         public UserAction[] Actions { get; private set; }
         public MultiAction(IEnumerable<UserAction> actions) { Actions = actions.ToArray(); }
 
-        private void process(Action<UserAction> processor, HashSet<Item> selected)
+        public override void Do()
         {
-            var newSelection = new HashSet<Item>();
             foreach (var action in Actions)
-            {
-                processor(action);
-                newSelection.AddRange(selected);
-            }
-            selected.AddRange(newSelection);
+                action.Do();
         }
 
-        public override void Do(HashSet<Item> selected)
+        public override void Undo()
         {
-            process(action => action.Do(selected), selected);
+            foreach (var action in Actions)
+                action.Undo();
         }
 
-        public override void Undo(HashSet<Item> selected)
-        {
-            process(action => action.Undo(selected), selected);
-        }
+        public override IEnumerable<Item> Selection { get { return Actions.SelectMany(a => a.Selection); } }
     }
 
     sealed class MoveArrow : UserAction
@@ -57,21 +51,19 @@ namespace ZiimHelper
             NewY = newY;
         }
 
-        public override void Do(HashSet<Item> selected)
+        public override void Do()
         {
-            selected.Clear();
             Arrow.X = NewX;
             Arrow.Y = NewY;
-            selected.Add(Arrow);
         }
 
-        public override void Undo(HashSet<Item> selected)
+        public override void Undo()
         {
-            selected.Clear();
             Arrow.X = OldX;
             Arrow.Y = OldY;
-            selected.Add(Arrow);
         }
+
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
     sealed class MoveLabel : UserAction
@@ -92,7 +84,7 @@ namespace ZiimHelper
             NewY = newY;
         }
 
-        public override void Do(HashSet<Item> selected)
+        public override void Do()
         {
             if (IsFrom)
             {
@@ -106,7 +98,7 @@ namespace ZiimHelper
             }
         }
 
-        public override void Undo(HashSet<Item> selected)
+        public override void Undo()
         {
             if (IsFrom)
             {
@@ -119,6 +111,8 @@ namespace ZiimHelper
                 Cloud.LabelToY = OldY;
             }
         }
+
+        public override IEnumerable<Item> Selection { get { yield return Cloud; } }
     }
 
     enum ActionType
@@ -145,34 +139,23 @@ namespace ZiimHelper
             ParentCloud = parentCloud;
         }
 
-        private void add(HashSet<Item> selected)
-        {
-            selected.Clear();
-            ParentCloud.Items.AddRange(Items);
-            selected.AddRange(Items);
-        }
-
-        private void remove(HashSet<Item> selected)
-        {
-            selected.Clear();
-            ParentCloud.Items.RemoveRange(Items);
-        }
-
-        public override void Do(HashSet<Item> selected)
+        public override void Do()
         {
             if (ActionType == ActionType.Remove)
-                remove(selected);
+                ParentCloud.Items.RemoveRange(Items);
             else
-                add(selected);
+                ParentCloud.Items.AddRange(Items);
         }
 
-        public override void Undo(HashSet<Item> selected)
+        public override void Undo()
         {
             if (ActionType == ActionType.Remove)
-                add(selected);
+                ParentCloud.Items.AddRange(Items);
             else
-                remove(selected);
+                ParentCloud.Items.RemoveRange(Items);
         }
+
+        public override IEnumerable<Item> Selection { get { return Items; } }
     }
 
     sealed class CloudColor : UserAction
@@ -187,8 +170,9 @@ namespace ZiimHelper
             NewColor = newColor;
         }
 
-        public override void Do(HashSet<Item> selected) { Cloud.Color = NewColor; }
-        public override void Undo(HashSet<Item> selected) { Cloud.Color = OldColor; }
+        public override void Do() { Cloud.Color = NewColor; }
+        public override void Undo() { Cloud.Color = OldColor; }
+        public override IEnumerable<Item> Selection { get { yield return Cloud; } }
     }
 
     sealed class CloudLabel : UserAction
@@ -203,8 +187,9 @@ namespace ZiimHelper
             NewLabel = newLabel;
         }
 
-        public override void Do(HashSet<Item> selected) { Cloud.Label = NewLabel; }
-        public override void Undo(HashSet<Item> selected) { Cloud.Label = OldLabel; }
+        public override void Do() { Cloud.Label = NewLabel; }
+        public override void Undo() { Cloud.Label = OldLabel; }
+        public override IEnumerable<Item> Selection { get { yield return Cloud; } }
     }
 
     sealed class ArrowAnnotation : UserAction
@@ -219,21 +204,27 @@ namespace ZiimHelper
             NewAnnotation = newAnnotation;
         }
 
-        public override void Do(HashSet<Item> selected) { Arrow.Annotation = NewAnnotation; }
-        public override void Undo(HashSet<Item> selected) { Arrow.Annotation = OldAnnotation; }
+        public override void Do() { Arrow.Annotation = NewAnnotation; }
+        public override void Undo() { Arrow.Annotation = OldAnnotation; }
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
     sealed class ToggleMark : UserAction
     {
         public ArrowInfo Arrow { get; private set; }
         public ToggleMark(ArrowInfo arrow) { Arrow = arrow; }
-        public override void Do(HashSet<Item> selected)
-        {
-            selected.Clear();
-            Arrow.Marked = !Arrow.Marked;
-            selected.Add(Arrow);
-        }
-        public override void Undo(HashSet<Item> selected) { Do(selected); }
+        public override void Do() { Arrow.Marked = !Arrow.Marked; }
+        public override void Undo() { Arrow.Marked = !Arrow.Marked; }
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
+    }
+
+    sealed class ToggleTerminal : UserAction
+    {
+        public SingleArrowInfo Arrow { get; private set; }
+        public ToggleTerminal(SingleArrowInfo arrow) { Arrow = arrow; }
+        public override void Do() { Arrow.IsTerminalArrow = !Arrow.IsTerminalArrow; }
+        public override void Undo() { Arrow.IsTerminalArrow = !Arrow.IsTerminalArrow; }
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
     sealed class RotateArrow : UserAction
@@ -245,16 +236,9 @@ namespace ZiimHelper
             Arrow = arrow;
             Clockwise = clockwise;
         }
-
-        private void rotate(HashSet<Item> selected, bool clockwise)
-        {
-            selected.Clear();
-            selected.Add(Arrow);
-            Arrow.Rotate(clockwise);
-        }
-
-        public override void Do(HashSet<Item> selected) { rotate(selected, Clockwise); }
-        public override void Undo(HashSet<Item> selected) { rotate(selected, !Clockwise); }
+        public override void Do() { Arrow.Rotate(Clockwise); }
+        public override void Undo() { Arrow.Rotate(!Clockwise); }
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
     abstract class ReorientArrow<TArrow, TDirection> : UserAction where TArrow : ArrowInfo
@@ -268,26 +252,21 @@ namespace ZiimHelper
             OldDirection = oldDirection;
             NewDirection = newDirection;
         }
-        private void setDirection(TDirection direction, HashSet<Item> selected)
-        {
-            selected.Clear();
-            selected.Add(Arrow);
-            setDirectionImpl(direction);
-        }
-        protected abstract void setDirectionImpl(TDirection direction);
-        public override void Do(HashSet<Item> selected) { setDirection(NewDirection, selected); }
-        public override void Undo(HashSet<Item> selected) { setDirection(OldDirection, selected); }
+        protected abstract void setDirection(TDirection direction);
+        public override void Do() { setDirection(NewDirection); }
+        public override void Undo() { setDirection(OldDirection); }
+        public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
     sealed class ReorientSingleArrow : ReorientArrow<SingleArrowInfo, Direction>
     {
-        protected override void setDirectionImpl(Direction direction) { Arrow.Direction = direction; }
         public ReorientSingleArrow(SingleArrowInfo arrow, Direction oldDirection, Direction newDirection) : base(arrow, oldDirection, newDirection) { }
+        protected override void setDirection(Direction direction) { Arrow.Direction = direction; }
     }
     sealed class ReorientDoubleArrow : ReorientArrow<DoubleArrowInfo, DoubleDirection>
     {
-        protected override void setDirectionImpl(DoubleDirection direction) { Arrow.Direction = direction; }
         public ReorientDoubleArrow(DoubleArrowInfo arrow, DoubleDirection oldDirection, DoubleDirection newDirection) : base(arrow, oldDirection, newDirection) { }
+        protected override void setDirection(DoubleDirection direction) { Arrow.Direction = direction; }
     }
 
     sealed class RotateItems : UserAction
@@ -300,11 +279,8 @@ namespace ZiimHelper
             Clockwise = clockwise;
         }
 
-        private void rotate(HashSet<Item> selected, bool clockwise)
+        private void rotate(bool clockwise)
         {
-            selected.Clear();
-            selected.AddRange(Items);
-
             var arrows = Items.OfType<ArrowInfo>();
             var minX = arrows.Min(a => a.X);
             var minY = arrows.Min(a => a.Y);
@@ -335,7 +311,8 @@ namespace ZiimHelper
             }
         }
 
-        public override void Do(HashSet<Item> selected) { rotate(selected, Clockwise); }
-        public override void Undo(HashSet<Item> selected) { rotate(selected, !Clockwise); }
+        public override void Do() { rotate(Clockwise); }
+        public override void Undo() { rotate(!Clockwise); }
+        public override IEnumerable<Item> Selection { get { return Items; } }
     }
 }

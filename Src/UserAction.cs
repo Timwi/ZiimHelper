@@ -66,6 +66,36 @@ namespace ZiimHelper
         public override IEnumerable<Item> Selection { get { yield return Arrow; } }
     }
 
+    sealed class ConvertArrow : UserAction
+    {
+        public ArrowInfo OldArrow { get; private set; }
+        public ArrowInfo NewArrow { get; private set; }
+        public Cloud ParentCloud { get; private set; }
+
+        public ConvertArrow(ArrowInfo arrow, Cloud parentCloud)
+        {
+            OldArrow = arrow;
+            NewArrow = arrow.IfType(
+                (SingleArrowInfo sai) => (ArrowInfo) new DoubleArrowInfo { X = sai.X, Y = sai.Y, Annotation = sai.Annotation, Direction = (DoubleDirection) ((int) sai.Direction % 4), Marked = sai.Marked },
+                (DoubleArrowInfo dai) => (ArrowInfo) new SingleArrowInfo { X = dai.X, Y = dai.Y, Annotation = dai.Annotation, Direction = (Direction) (int) dai.Direction, Marked = dai.Marked });
+            ParentCloud = parentCloud;
+        }
+
+        public override void Do()
+        {
+            ParentCloud.Items.Remove(OldArrow);
+            ParentCloud.Items.Add(NewArrow);
+        }
+
+        public override void Undo()
+        {
+            ParentCloud.Items.Remove(NewArrow);
+            ParentCloud.Items.Add(OldArrow);
+        }
+
+        public override IEnumerable<Item> Selection { get { yield return OldArrow; yield return NewArrow; } }
+    }
+
     sealed class MoveLabel : UserAction
     {
         public Cloud Cloud { get; private set; }

@@ -145,9 +145,9 @@ namespace ZiimHelper
             _paintFontSize = "↑↗→↘↓↙←↖↕⤢↔⤡".Min(ch => e.Graphics.GetMaximumFontSize(new SizeF(_paintCellSize, _paintCellSize), _arrowFont, ch.ToString()));
 
             e.Graphics.FillRectangle(Brushes.White, _paintTarget);
-            e.Graphics.DrawRectangle(Pens.Black, _paintTarget);
             using (var tr = new GraphicsTransformer(e.Graphics).Translate(_paintTarget.Left, _paintTarget.Top))
                 paintInto(e.Graphics, _paintCellSize, _paintFontSize);
+            e.Graphics.DrawRectangle(Pens.Black, _paintTarget);
         }
 
         private void paintInto(Graphics g, int cellSize, float fontSize)
@@ -191,9 +191,9 @@ namespace ZiimHelper
                 }
             }
 
-            // INSTRUCTIONS (requires pointedAtFromDirectionsDic populated earlier)
-            // Also creates a dictionary to remember which instruction each arrow is
-            var instructionDic = new Dictionary<ArrowInfo, string>();
+            // Create a dictionary to remember which instruction each arrow is
+            // (requires pointedAtFromDirectionsDic populated earlier)
+            var instructionDic = new Dictionary<ArrowInfo, Tuple<string, Direction, int>>();
             if (miInstructions.Checked || miConnectionLines.Checked)
             {
                 foreach (var inf in _editingCloud.ArrowsWithParents)
@@ -205,9 +205,7 @@ namespace ZiimHelper
                     var x = (arrow.X - _paintMinX) * cellSize;
                     var y = (arrow.Y - _paintMinY) * cellSize;
 
-                    List<Direction> directions;
-                    if (arrow.IsTerminal || !pointedAtFromDirectionsDic.TryGetValue(arrow, out directions))
-                        directions = null;
+                    var directions = pointedAtFromDirectionsDic.Get(arrow, null);
                     string instruction = null;
                     Direction dir = 0;
                     int yn = 0;
@@ -243,53 +241,12 @@ namespace ZiimHelper
                         }
                     );
 
-                    if (miInstructions.Checked)
-                    {
-                        if (instruction == null)
-                            // Mark invalid arrows with a semitransparent red circle
-                            g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
-                        else
-                        {
-                            g.DrawString(instruction.Substring(0, 1), new Font(_instructionFont, fontSize / 2), Brushes.Black,
-                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
-                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
-                                Util.CenterCenter
-                            );
-                            if (yn != 0)
-                            {
-                                g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
-                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
-                                    Util.CenterCenter
-                                );
-                                g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
-                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
-                                    Util.CenterCenter
-                                );
-                            }
-                            else if (instruction == "C")
-                            {
-                                g.DrawString("A", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
-                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
-                                    Util.CenterCenter
-                                );
-                                g.DrawString("B", new Font(_instructionFont, fontSize / 4), Brushes.Black,
-                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
-                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
-                                    Util.CenterCenter
-                                );
-                            }
-                        }
-                    }
-
                     if (instruction != null)
-                        instructionDic.Add(arrow, instruction);
+                        instructionDic.Add(arrow, Tuple.Create(instruction, dir, yn));
                 }
             }
 
-            // COORDINATES and CONNECTION LINES
+            // COORDINATES and CONNECTION LINES (requires instructionDic populated earlier)
             if (miCoordinates.Checked || miConnectionLines.Checked)
             {
                 var colors = Ut.NewArray(
@@ -317,7 +274,7 @@ namespace ZiimHelper
                 {
                     var arr = inf.Item1;
                     var parentCloud = inf.Item2;
-                    var instruction = instructionDic.Get(arr, "X");
+                    var instruction = instructionDic.Get(arr, null).NullOr(tup => tup.Item1) ?? "X";
 
                     // COORDINATES
                     if (miCoordinates.Checked)
@@ -358,7 +315,7 @@ namespace ZiimHelper
 
                         foreach (var dir in arr.Directions)
                         {
-                            switch (instructionDic.Get(arr, "X"))
+                            switch (instructionDic.Get(arr, null).NullOr(tup => tup.Item1))
                             {
                                 case "0": col = 0; knownEmpty = false; break;
 
@@ -368,7 +325,7 @@ namespace ZiimHelper
                                 case "E2": col = flip ? 4 : 2; knownEmpty = true; break;
 
                                 case "R":
-                                case "X": col = 6; knownEmpty = false; break;
+                                case null: col = 6; knownEmpty = false; break;
 
                                 case "C":
                                 case "L": col = 6; break;
@@ -384,6 +341,7 @@ namespace ZiimHelper
                                 toX -= dir.XOffset();
                                 toY -= dir.YOffset();
                             }
+
                             using (var pen = new Pen(colors[col].Item1, 1f) { EndCap = knownEmpty ? LineCap.RoundAnchor : LineCap.ArrowAnchor, DashStyle = colors[col].Item2 })
                             {
                                 g.DrawLine(pen,
@@ -393,27 +351,31 @@ namespace ZiimHelper
                                     cellSize * (toY - _paintMinY) + cellSize / 2 - dir.YOffset() * cellSize * 4 / 10);
                             }
 
-                            if (pointTo != null && instructionDic.ContainsKey(pointTo))
+                            if (pointTo != null)
                             {
-                                if (instructionDic[pointTo] == "N" || instructionDic[pointTo] == "I" || instructionDic[pointTo] == "S")
-                                    q.Enqueue(Tuple.Create(pointTo, col, knownEmpty));
-                                else if (instructionDic[pointTo] == "L" || instructionDic[pointTo] == "C")
+                                var instruction = instructionDic.Get(pointTo, null);
+                                if (instruction != null)
                                 {
-                                    var prevKnownEmpty = true;
-                                    switch (waitingLsCs.Get(pointTo, 0))
+                                    if (instruction.Item1 == "N" || instruction.Item1 == "I" || instruction.Item1 == "S")
+                                        q.Enqueue(Tuple.Create(pointTo, col, knownEmpty));
+                                    else if (instruction.Item1 == "L" || instruction.Item1 == "C")
                                     {
-                                        case 0:
-                                            waitingLsCs.Add(pointTo, knownEmpty ? 2 : 1);
-                                            break;
-                                        case 1:
-                                            prevKnownEmpty = false;
-                                            goto case 2;
-                                        case 2:
-                                            q.Enqueue(Tuple.Create(pointTo, col, knownEmpty && prevKnownEmpty));
-                                            goto case 3;
-                                        case 3:
-                                            waitingLsCs.Remove(pointTo);
-                                            break;
+                                        var prevKnownEmpty = true;
+                                        switch (waitingLsCs.Get(pointTo, 0))
+                                        {
+                                            case 0:
+                                                waitingLsCs.Add(pointTo, knownEmpty ? 2 : 1);
+                                                break;
+                                            case 1:
+                                                prevKnownEmpty = false;
+                                                goto case 2;
+                                            case 2:
+                                                q.Enqueue(Tuple.Create(pointTo, col, knownEmpty && prevKnownEmpty));
+                                                goto case 3;
+                                            case 3:
+                                                waitingLsCs.Remove(pointTo);
+                                                break;
+                                        }
                                     }
                                 }
                             }
@@ -463,11 +425,58 @@ namespace ZiimHelper
                         g.DrawPath(pen, path);
                         g.DrawString(arrow.Annotation, font, textBrush, new RectangleF(location + new SizeF(3, 1), size - new SizeF(6, 2)), Util.CenterCenter);
                     }
+
+                    // INSTRUCTIONS (requires instructionDic populated earlier)
+                    if (miInstructions.Checked && !arrow.IsTerminal)
+                    {
+                        var instructionInfo = instructionDic.Get(arrow, null);
+                        if (instructionInfo == null)
+                            // Mark invalid arrows with a semitransparent red circle
+                            g.FillEllipse(new SolidBrush(Color.FromArgb(64, 255, 128, 128)), x, y, cellSize, cellSize);
+                        else
+                        {
+                            var instruction = instructionInfo.Item1;
+                            var dir = instructionInfo.Item2;
+                            var yn = instructionInfo.Item3;
+
+                            g.DrawString(instruction.Substring(0, 1), new Font(_instructionFont, fontSize / 2), Brushes.Black,
+                                (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * (int) dir) * cellSize / 4),
+                                (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * (int) dir) * cellSize / 4),
+                                Util.CenterCenter
+                            );
+                            if (yn != 0)
+                            {
+                                g.DrawString("y", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 - yn)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                                g.DrawString("n", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 4 + yn)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                            }
+                            else if (instruction == "C")
+                            {
+                                g.DrawString("A", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 1)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                                g.DrawString("B", new Font(_instructionFont, fontSize / 4), Brushes.Black,
+                                    (float) (x + cellSize / 2 + Math.Cos(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                    (float) (y + cellSize / 2 + Math.Sin(Math.PI / 4 * ((int) dir + 3)) * cellSize / 3),
+                                    Util.CenterCenter
+                                );
+                            }
+                        }
+                    }
                 }
 
             /// “!!!” for arrows that overlap
             foreach (var pair in _editingCloud.AllArrows.UniquePairs())
-                if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y && pair.Item1.IsTerminal == pair.Item2.IsTerminal)
+                if (pair.Item1.X == pair.Item2.X && pair.Item1.Y == pair.Item2.Y && !pair.Item1.IsTerminal && !pair.Item2.IsTerminal)
                     g.DrawString("!!!", new Font(_arrowFont, fontSize, FontStyle.Italic), Brushes.Red,
                         cellSize * (pair.Item1.X - _paintMinX) + cellSize / 2, cellSize * (pair.Item1.Y - _paintMinY) + cellSize / 2,
                         Util.CenterCenter);
@@ -548,7 +557,13 @@ namespace ZiimHelper
         {
             if (_filename == null)
                 return saveAs();
-            ClassifyXml.SerializeToFile(_file, _filename, _classifyOptions);
+            if (_filename.EndsWith(".ziim"))
+            {
+                File.WriteAllText(_filename, getSource(_file));
+                ClassifyXml.SerializeToFile(_file, _filename + "x", _classifyOptions);
+            }
+            else
+                ClassifyXml.SerializeToFile(_file, _filename, _classifyOptions);
             _fileChanged = false;
             return true;
         }
@@ -818,24 +833,26 @@ namespace ZiimHelper
                 Do(new MultiAction(_selected.SelectMany(itm => itm.AllArrows).Select(arrow => new ToggleMark(arrow))));
         }
 
-        private void copySource(object sender, EventArgs e)
+        private string getSource(Cloud cloud)
         {
-            if (_editingCloud.Items.Count == 0)
-            {
-                Clipboard.SetText("");
-                return;
-            }
+            if (cloud.Items.Count == 0)
+                return "";
 
-            var minX = _editingCloud.AllArrows.Min(a => a.X);
-            var minY = _editingCloud.AllArrows.Min(a => a.Y);
-            var maxX = _editingCloud.AllArrows.Max(a => a.X);
-            var maxY = _editingCloud.AllArrows.Max(a => a.Y);
+            var minX = cloud.AllArrows.Min(a => a.X);
+            var minY = cloud.AllArrows.Min(a => a.Y);
+            var maxX = cloud.AllArrows.Max(a => a.X);
+            var maxY = cloud.AllArrows.Max(a => a.Y);
 
             var arr = Ut.NewArray<char>(maxY - minY + 1, maxX - minX + 1, (i, j) => ' ');
-            foreach (var arrow in _editingCloud.AllArrows)
+            foreach (var arrow in cloud.AllArrows)
                 if (!arrow.IsTerminal)
                     arr[arrow.Y - minY][arrow.X - minX] = arrow.Character;
-            Clipboard.SetText(arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine));
+            return arr.Select(row => " " + row.JoinString()).JoinString(Environment.NewLine);
+        }
+
+        private void copySource(object _, EventArgs __)
+        {
+            Clipboard.SetText(getSource(_editingCloud));
         }
 
         private void copyImage(object sender, EventArgs __)
@@ -1115,6 +1132,11 @@ namespace ZiimHelper
                 undo();
             else if (e.KeyData == (Keys.Back | Keys.Alt | Keys.Shift))
                 redo();
+            else if (e.KeyData == Keys.Escape)
+            {
+                _selected.Clear();
+                ctImage.Invalidate();
+            }
             else if (_selected.Count > 0)
             {
                 var xOffset = e.KeyData == Keys.Left ? -1 : e.KeyData == Keys.Right ? 1 : 0;
@@ -1162,6 +1184,14 @@ namespace ZiimHelper
                 {
                     var filename = dlg.FileName;
                     var cloud = readFile(ref filename);
+                    if (_paintCellSize > 0)
+                    {
+                        int minX, maxX, minY, maxY;
+                        cloud.GetBounds(out minX, out maxX, out minY, out maxY);
+                        var screenCenterX = (ctImage.ClientSize.Width / 2 - _paintTarget.X) / _paintCellSize + _paintMinX;
+                        var screenCenterY = (ctImage.ClientSize.Height / 2 - _paintTarget.Y) / _paintCellSize + _paintMinY;
+                        cloud.GetMoveAction(screenCenterX - (maxX - minX) / 2, screenCenterY - (maxY - minY) / 2).Do();
+                    }
                     Do(new AddOrRemoveItems(ActionType.Add, cloud, _editingCloud));
                 }
                 catch (Exception e)
@@ -1191,7 +1221,7 @@ namespace ZiimHelper
 
         private void setLabel(object _, EventArgs __)
         {
-            var text = InputBox.GetLine("Enter text:", _editingCloud.Label ?? "", useMultilineBox: true);
+            var text = InputBox.GetLine("Enter new label:", _editingCloud.Label ?? "", "Set label", useMultilineBox: true);
             if (text == null)
                 return;
             if (string.IsNullOrWhiteSpace(text))
@@ -1265,12 +1295,25 @@ namespace ZiimHelper
             refresh();
         }
 
+        private void scroll(object sender, EventArgs e)
+        {
+            _scrollX += sender == miScrollLeft ? -_paintCellSize : sender == miScrollRight ? _paintCellSize : 0;
+            _scrollY += sender == miScrollUp ? -_paintCellSize : sender == miScrollDown ? _paintCellSize : 0;
+            refresh();
+        }
+
         private void changeZoom(double factor)
         {
             _zoomFactor *= (float) factor;
             _scrollX = (int) (_scrollX * factor);
             _scrollY = (int) (_scrollY * factor);
             refresh();
+        }
+
+        private void convertSingleDoubleArrow(object sender, EventArgs e)
+        {
+            if (_selected.Count > 0 && _selected.All(item => item.IfType((ArrowInfo ai) => !ai.IsTerminal)))
+                Do(_selected.OfType<ArrowInfo>().Select(arrow => new ConvertArrow(arrow, _editingCloud)));
         }
 
         private void undo(object _ = null, EventArgs __ = null)

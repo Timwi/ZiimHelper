@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Mainform));
             this.miDeleteArrow = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveUp = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveDown = new System.Windows.Forms.ToolStripMenuItem();
@@ -64,6 +65,7 @@
             this.miSep6 = new System.Windows.Forms.ToolStripSeparator();
             this.miSep2 = new System.Windows.Forms.ToolStripSeparator();
             this.miArrowsOnly = new System.Windows.Forms.ToolStripMenuItem();
+            this.miConvertSingleDoubleArrow = new System.Windows.Forms.ToolStripMenuItem();
             this.miToggleInput = new System.Windows.Forms.ToolStripMenuItem();
             this.miAnnotate = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep5 = new System.Windows.Forms.ToolStripSeparator();
@@ -84,6 +86,12 @@
             this.miResetZoom = new System.Windows.Forms.ToolStripMenuItem();
             this.miZoomIn = new System.Windows.Forms.ToolStripMenuItem();
             this.miZoomOut = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep9 = new System.Windows.Forms.ToolStripSeparator();
+            this.miScrollUp = new System.Windows.Forms.ToolStripMenuItem();
+            this.miScrollDown = new System.Windows.Forms.ToolStripMenuItem();
+            this.miScrollLeft = new System.Windows.Forms.ToolStripMenuItem();
+            this.miScrollRight = new System.Windows.Forms.ToolStripMenuItem();
+            this.miViewMnemonics = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuMode = new System.Windows.Forms.ToolStripMenuItem();
             this.miMoveSelect = new System.Windows.Forms.ToolStripMenuItem();
             this.miDraw = new System.Windows.Forms.ToolStripMenuItem();
@@ -336,6 +344,7 @@
             this.miRotateCounterclockwise,
             this.miSep2,
             this.miArrowsOnly,
+            this.miConvertSingleDoubleArrow,
             this.miToggleInput,
             this.miMark,
             this.miAnnotate,
@@ -411,6 +420,14 @@
             this.miArrowsOnly.Size = new System.Drawing.Size(258, 22);
             this.miArrowsOnly.Text = "Arrows only";
             // 
+            // miConvertSingleDoubleArrow
+            // 
+            this.miConvertSingleDoubleArrow.Name = "miConvertSingleDoubleArrow";
+            this.miConvertSingleDoubleArrow.ShortcutKeys = System.Windows.Forms.Keys.F12;
+            this.miConvertSingleDoubleArrow.Size = new System.Drawing.Size(258, 22);
+            this.miConvertSingleDoubleArrow.Text = "Convert s&ingle/double arrow";
+            this.miConvertSingleDoubleArrow.Click += new System.EventHandler(this.convertSingleDoubleArrow);
+            // 
             // miToggleInput
             // 
             this.miToggleInput.Name = "miToggleInput";
@@ -466,7 +483,7 @@
             // 
             this.miEditMnemonics.Name = "miEditMnemonics";
             this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
-            this.miEditMnemonics.Text = "gijnqruxyz";
+            this.miEditMnemonics.Text = "gjnqruxyz";
             this.miEditMnemonics.Visible = false;
             // 
             // mnuView
@@ -482,7 +499,13 @@
             this.miSep7,
             this.miResetZoom,
             this.miZoomIn,
-            this.miZoomOut});
+            this.miZoomOut,
+            this.miSep9,
+            this.miScrollUp,
+            this.miScrollDown,
+            this.miScrollLeft,
+            this.miScrollRight,
+            this.miViewMnemonics});
             this.mnuView.Name = "mnuView";
             this.mnuView.Size = new System.Drawing.Size(44, 20);
             this.mnuView.Text = "&View";
@@ -491,7 +514,7 @@
             // 
             this.miGrid.Name = "miGrid";
             this.miGrid.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
-            this.miGrid.Size = new System.Drawing.Size(201, 22);
+            this.miGrid.Size = new System.Drawing.Size(213, 22);
             this.miGrid.Text = "&Grid";
             this.miGrid.Click += new System.EventHandler(this.toggleViewOption);
             // 
@@ -499,23 +522,23 @@
             // 
             this.miConnectionLines.Name = "miConnectionLines";
             this.miConnectionLines.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.J)));
-            this.miConnectionLines.Size = new System.Drawing.Size(201, 22);
-            this.miConnectionLines.Text = "Connection &lines";
+            this.miConnectionLines.Size = new System.Drawing.Size(213, 22);
+            this.miConnectionLines.Text = "&Connection lines";
             this.miConnectionLines.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miInstructions
             // 
             this.miInstructions.Name = "miInstructions";
             this.miInstructions.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
-            this.miInstructions.Size = new System.Drawing.Size(201, 22);
-            this.miInstructions.Text = "Instr&uctions";
+            this.miInstructions.Size = new System.Drawing.Size(213, 22);
+            this.miInstructions.Text = "&Instructions";
             this.miInstructions.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miAnnotations
             // 
             this.miAnnotations.Name = "miAnnotations";
             this.miAnnotations.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
-            this.miAnnotations.Size = new System.Drawing.Size(201, 22);
+            this.miAnnotations.Size = new System.Drawing.Size(213, 22);
             this.miAnnotations.Text = "&Annotations";
             this.miAnnotations.Click += new System.EventHandler(this.toggleViewOption);
             // 
@@ -523,7 +546,7 @@
             // 
             this.miOwnCloud.Name = "miOwnCloud";
             this.miOwnCloud.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.W)));
-            this.miOwnCloud.Size = new System.Drawing.Size(201, 22);
+            this.miOwnCloud.Size = new System.Drawing.Size(213, 22);
             this.miOwnCloud.Text = "O&wn cloud";
             this.miOwnCloud.Click += new System.EventHandler(this.toggleViewOption);
             // 
@@ -531,28 +554,30 @@
             // 
             this.miInnerClouds.Name = "miInnerClouds";
             this.miInnerClouds.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
-            this.miInnerClouds.Size = new System.Drawing.Size(201, 22);
-            this.miInnerClouds.Text = "Inner clou&ds";
+            this.miInnerClouds.Size = new System.Drawing.Size(213, 22);
+            this.miInnerClouds.Text = "I&nner clouds";
             this.miInnerClouds.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miCoordinates
             // 
             this.miCoordinates.Name = "miCoordinates";
-            this.miCoordinates.Size = new System.Drawing.Size(201, 22);
-            this.miCoordinates.Text = "&Coordinates";
+            this.miCoordinates.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.O)));
+            this.miCoordinates.Size = new System.Drawing.Size(213, 22);
+            this.miCoordinates.Text = "C&oordinates";
             this.miCoordinates.Click += new System.EventHandler(this.toggleViewOption);
             // 
             // miSep7
             // 
             this.miSep7.Name = "miSep7";
-            this.miSep7.Size = new System.Drawing.Size(198, 6);
+            this.miSep7.Size = new System.Drawing.Size(210, 6);
             // 
             // miResetZoom
             // 
             this.miResetZoom.Name = "miResetZoom";
             this.miResetZoom.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D0)));
-            this.miResetZoom.Size = new System.Drawing.Size(201, 22);
-            this.miResetZoom.Text = "&Reset Zoom";
+            this.miResetZoom.Size = new System.Drawing.Size(213, 22);
+            this.miResetZoom.Text = "Reset &Zoom";
             this.miResetZoom.Click += new System.EventHandler(this.resetZoom);
             // 
             // miZoomIn
@@ -560,8 +585,8 @@
             this.miZoomIn.Name = "miZoomIn";
             this.miZoomIn.ShortcutKeyDisplayString = "Ctrl+=";
             this.miZoomIn.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Oemplus)));
-            this.miZoomIn.Size = new System.Drawing.Size(201, 22);
-            this.miZoomIn.Text = "&Zoom in";
+            this.miZoomIn.Size = new System.Drawing.Size(213, 22);
+            this.miZoomIn.Text = "Zoo&m in";
             this.miZoomIn.Click += new System.EventHandler(this.zoomIn);
             // 
             // miZoomOut
@@ -569,9 +594,53 @@
             this.miZoomOut.Name = "miZoomOut";
             this.miZoomOut.ShortcutKeyDisplayString = "Ctrl+-";
             this.miZoomOut.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.OemMinus)));
-            this.miZoomOut.Size = new System.Drawing.Size(201, 22);
-            this.miZoomOut.Text = "Zoom &out";
+            this.miZoomOut.Size = new System.Drawing.Size(213, 22);
+            this.miZoomOut.Text = "Zoom ou&t";
             this.miZoomOut.Click += new System.EventHandler(this.zoomOut);
+            // 
+            // miSep9
+            // 
+            this.miSep9.Name = "miSep9";
+            this.miSep9.Size = new System.Drawing.Size(210, 6);
+            // 
+            // miScrollUp
+            // 
+            this.miScrollUp.Name = "miScrollUp";
+            this.miScrollUp.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Up)));
+            this.miScrollUp.Size = new System.Drawing.Size(213, 22);
+            this.miScrollUp.Text = "Scroll &up";
+            this.miScrollUp.Click += new System.EventHandler(this.scroll);
+            // 
+            // miScrollDown
+            // 
+            this.miScrollDown.Name = "miScrollDown";
+            this.miScrollDown.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Down)));
+            this.miScrollDown.Size = new System.Drawing.Size(213, 22);
+            this.miScrollDown.Text = "Scroll &down";
+            this.miScrollDown.Click += new System.EventHandler(this.scroll);
+            // 
+            // miScrollLeft
+            // 
+            this.miScrollLeft.Name = "miScrollLeft";
+            this.miScrollLeft.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Left)));
+            this.miScrollLeft.Size = new System.Drawing.Size(213, 22);
+            this.miScrollLeft.Text = "Scroll &left";
+            this.miScrollLeft.Click += new System.EventHandler(this.scroll);
+            // 
+            // miScrollRight
+            // 
+            this.miScrollRight.Name = "miScrollRight";
+            this.miScrollRight.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Right)));
+            this.miScrollRight.Size = new System.Drawing.Size(213, 22);
+            this.miScrollRight.Text = "Scroll &right";
+            this.miScrollRight.Click += new System.EventHandler(this.scroll);
+            // 
+            // miViewMnemonics
+            // 
+            this.miViewMnemonics.Name = "miViewMnemonics";
+            this.miViewMnemonics.Size = new System.Drawing.Size(213, 22);
+            this.miViewMnemonics.Text = "befhjkpqsvxy";
+            this.miViewMnemonics.Visible = false;
             // 
             // mnuMode
             // 
@@ -611,8 +680,8 @@
             // mnuUnusedCtrlShortcuts
             // 
             this.mnuUnusedCtrlShortcuts.Name = "mnuUnusedCtrlShortcuts";
-            this.mnuUnusedCtrlShortcuts.Size = new System.Drawing.Size(193, 20);
-            this.mnuUnusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: befhpqryz";
+            this.mnuUnusedCtrlShortcuts.Size = new System.Drawing.Size(182, 20);
+            this.mnuUnusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: befhpqr";
             this.mnuUnusedCtrlShortcuts.Visible = false;
             // 
             // Mainform
@@ -622,6 +691,7 @@
             this.ClientSize = new System.Drawing.Size(716, 679);
             this.Controls.Add(this.ctImage);
             this.Controls.Add(this.ctMenu);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.ctMenu;
             this.Name = "Mainform";
             this.Text = "Ziim Helper";
@@ -698,6 +768,13 @@
         private System.Windows.Forms.ToolStripMenuItem miUndo;
         private System.Windows.Forms.ToolStripMenuItem miRedo;
         private System.Windows.Forms.ToolStripSeparator miSep8;
+        private System.Windows.Forms.ToolStripMenuItem miConvertSingleDoubleArrow;
+        private System.Windows.Forms.ToolStripSeparator miSep9;
+        private System.Windows.Forms.ToolStripMenuItem miScrollUp;
+        private System.Windows.Forms.ToolStripMenuItem miScrollDown;
+        private System.Windows.Forms.ToolStripMenuItem miScrollLeft;
+        private System.Windows.Forms.ToolStripMenuItem miScrollRight;
+        private System.Windows.Forms.ToolStripMenuItem miViewMnemonics;
     }
 }
 

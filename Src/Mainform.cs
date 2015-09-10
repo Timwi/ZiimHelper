@@ -1234,7 +1234,10 @@ namespace ZiimHelper
         {
             Cloud newEditingCloud;
             if (_selected.Count != 1 || (newEditingCloud = _selected.First() as Cloud) == null)
+            {
+                DlgMessage.Show("Select a single cloud to edit.", "Error", DlgType.Info);
                 return;
+            }
 
             _outerClouds.Push(_editingCloud);
             _editingCloud = newEditingCloud;
@@ -1322,6 +1325,11 @@ namespace ZiimHelper
                 return;
             var action = _undo.Pop();
             action.Undo();
+            if (!_file.AllItems.Contains(_editingCloud))
+            {
+                _editingCloud = _file;
+                _outerClouds.Clear();
+            }
             _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             _redo.Push(action);
             refresh();
@@ -1333,6 +1341,11 @@ namespace ZiimHelper
                 return;
             var action = _redo.Pop();
             action.Do();
+            if (!_file.AllItems.Contains(_editingCloud))
+            {
+                _editingCloud = _file;
+                _outerClouds.Clear();
+            }
             _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             _undo.Push(action);
             refresh();
@@ -1351,6 +1364,24 @@ namespace ZiimHelper
             action.Do();
             _selected = action.Selection.Intersect(_editingCloud.Items).ToHashSet();
             refresh();
+        }
+
+        private void createCloud(object _, EventArgs __)
+        {
+            if (_selected.Count > 0)
+                Do(new CreateOrDissolveCloud(_selected, _editingCloud, dissolve: false));
+        }
+
+        private void dissolveCloud(object _, EventArgs __)
+        {
+            Cloud cloud;
+            if (_selected.Count != 1 || (cloud = _selected.First() as Cloud) == null)
+            {
+                DlgMessage.Show("Select a single cloud to dissolve.", "Error", DlgType.Info);
+                return;
+            }
+
+            Do(new CreateOrDissolveCloud(cloud, _editingCloud, dissolve: true));
         }
     }
 }

@@ -345,4 +345,57 @@ namespace ZiimHelper
         public override void Undo() { rotate(!Clockwise); }
         public override IEnumerable<Item> Selection { get { return Items; } }
     }
+
+    sealed class CreateOrDissolveCloud : UserAction
+    {
+        public Cloud Cloud { get; private set; }
+        public Cloud ParentCloud { get; private set; }
+        public bool Dissolve { get; private set; }
+        public CreateOrDissolveCloud(Cloud cloud, Cloud parentCloud, bool dissolve)
+        {
+            Cloud = cloud;
+            ParentCloud = parentCloud;
+            Dissolve = dissolve;
+        }
+        public CreateOrDissolveCloud(IEnumerable<Item> contents, Cloud parentCloud, bool dissolve)
+        {
+            Cloud = new Cloud
+            {
+                Color = Color.FromArgb(64, 64, 192, 255),
+                Items = contents.ToList()
+            };
+            int x1, y1, x2, y2;
+            Cloud.GetBounds(out x1, out x2, out y1, out y2);
+            Cloud.LabelFromX = x1;
+            Cloud.LabelFromY = y1;
+            Cloud.LabelToX = x2;
+            Cloud.LabelToY = y2;
+            ParentCloud = parentCloud;
+            Dissolve = dissolve;
+        }
+
+        private void createCloud()
+        {
+            ParentCloud.Items.RemoveRange(Cloud.Items);
+            ParentCloud.Items.Add(Cloud);
+        }
+
+        private void dissolveCloud()
+        {
+            ParentCloud.Items.Remove(Cloud);
+            ParentCloud.Items.AddRange(Cloud.Items);
+        }
+
+        public override void Do() { if (Dissolve) dissolveCloud(); else createCloud(); }
+        public override void Undo() { if (Dissolve) createCloud(); else dissolveCloud(); }
+        public override IEnumerable<Item> Selection
+        {
+            get
+            {
+                yield return Cloud;
+                foreach (var item in Cloud.Items)
+                    yield return item;
+            }
+        }
+    }
 }

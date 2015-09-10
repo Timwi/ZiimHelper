@@ -73,17 +73,17 @@ namespace ZiimHelper
         }
         public override void DrawSelected(Graphics g, int cellSize)
         {
-            drawCloud(g, cellSize, outline: new Pen(Brushes.Blue, 2), margin: cellSize / 10);
+            drawCloud(g, cellSize, outline: new Pen(Brushes.Blue, 2));
         }
         public void DrawCloud(Graphics g, int cellSize, bool own)
         {
-            drawCloud(g, cellSize, fill: true, margin: cellSize / 10, style: own ? FontStyle.Bold : FontStyle.Regular);
+            drawCloud(g, cellSize, fill: true, style: own ? FontStyle.Bold : FontStyle.Regular);
         }
 
         [ClassifyIgnore]
         private static FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
 
-        private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, int margin = 0, FontStyle style = FontStyle.Regular)
+        private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, FontStyle style = FontStyle.Regular)
         {
             if (AllArrows.All(a => a.IsTerminal))
                 return;
@@ -133,7 +133,7 @@ namespace ZiimHelper
                 var top = Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][i]);
                 var bottom = maxY - minY - Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][maxY - minY - i]);
                 return (left != -1 && left <= x && right >= x) || (top != -1 && top <= y && bottom >= y);
-            }) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, margin);
+            }) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, cellSize / 10);
 
             var m = new Matrix();
             m.Translate(cellSize * minX, cellSize * minY);

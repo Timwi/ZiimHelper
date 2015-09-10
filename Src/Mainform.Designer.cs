@@ -36,7 +36,6 @@
             this.miMoveRight = new System.Windows.Forms.ToolStripMenuItem();
             this.miRotateClockwise = new System.Windows.Forms.ToolStripMenuItem();
             this.miRotateCounterclockwise = new System.Windows.Forms.ToolStripMenuItem();
-            this.miMark = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.miCopySource = new System.Windows.Forms.ToolStripMenuItem();
             this.miCopyImage = new System.Windows.Forms.ToolStripMenuItem();
@@ -51,29 +50,31 @@
             this.miNew = new System.Windows.Forms.ToolStripMenuItem();
             this.miOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.miSaveAs = new System.Windows.Forms.ToolStripMenuItem();
-            this.miSep4 = new System.Windows.Forms.ToolStripSeparator();
-            this.miImport = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.miUndo = new System.Windows.Forms.ToolStripMenuItem();
             this.miRedo = new System.Windows.Forms.ToolStripMenuItem();
-            this.miSep8 = new System.Windows.Forms.ToolStripSeparator();
+            this.miSep4 = new System.Windows.Forms.ToolStripSeparator();
             this.miCut = new System.Windows.Forms.ToolStripMenuItem();
             this.miCopy = new System.Windows.Forms.ToolStripMenuItem();
             this.miPaste = new System.Windows.Forms.ToolStripMenuItem();
             this.miSep6 = new System.Windows.Forms.ToolStripSeparator();
-            this.miSep2 = new System.Windows.Forms.ToolStripSeparator();
-            this.miArrowsOnly = new System.Windows.Forms.ToolStripMenuItem();
+            this.miEditMnemonics = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuArrow = new System.Windows.Forms.ToolStripMenuItem();
             this.miConvertSingleDoubleArrow = new System.Windows.Forms.ToolStripMenuItem();
             this.miToggleInput = new System.Windows.Forms.ToolStripMenuItem();
+            this.miMark = new System.Windows.Forms.ToolStripMenuItem();
             this.miAnnotate = new System.Windows.Forms.ToolStripMenuItem();
-            this.miSep5 = new System.Windows.Forms.ToolStripSeparator();
-            this.miCloudsOnly = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuCloud = new System.Windows.Forms.ToolStripMenuItem();
             this.miColor = new System.Windows.Forms.ToolStripMenuItem();
             this.miSetLabel = new System.Windows.Forms.ToolStripMenuItem();
+            this.miSep2 = new System.Windows.Forms.ToolStripSeparator();
+            this.miImport = new System.Windows.Forms.ToolStripMenuItem();
+            this.miCreateCloud = new System.Windows.Forms.ToolStripMenuItem();
+            this.editCloudToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.miBackToOuter = new System.Windows.Forms.ToolStripMenuItem();
-            this.miEditMnemonics = new System.Windows.Forms.ToolStripMenuItem();
+            this.dissolveCloudToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuView = new System.Windows.Forms.ToolStripMenuItem();
             this.miGrid = new System.Windows.Forms.ToolStripMenuItem();
             this.miConnectionLines = new System.Windows.Forms.ToolStripMenuItem();
@@ -86,7 +87,7 @@
             this.miResetZoom = new System.Windows.Forms.ToolStripMenuItem();
             this.miZoomIn = new System.Windows.Forms.ToolStripMenuItem();
             this.miZoomOut = new System.Windows.Forms.ToolStripMenuItem();
-            this.miSep9 = new System.Windows.Forms.ToolStripSeparator();
+            this.miSep5 = new System.Windows.Forms.ToolStripSeparator();
             this.miScrollUp = new System.Windows.Forms.ToolStripMenuItem();
             this.miScrollDown = new System.Windows.Forms.ToolStripMenuItem();
             this.miScrollLeft = new System.Windows.Forms.ToolStripMenuItem();
@@ -121,7 +122,7 @@
             this.miMoveDown.Name = "miMoveDown";
             this.miMoveDown.ShortcutKeyDisplayString = "Down";
             this.miMoveDown.Size = new System.Drawing.Size(258, 22);
-            this.miMoveDown.Text = "Mo&ve down";
+            this.miMoveDown.Text = "M&ove down";
             this.miMoveDown.Click += new System.EventHandler(this.move);
             // 
             // miMoveLeft
@@ -129,7 +130,7 @@
             this.miMoveLeft.Name = "miMoveLeft";
             this.miMoveLeft.ShortcutKeyDisplayString = "Left";
             this.miMoveLeft.Size = new System.Drawing.Size(258, 22);
-            this.miMoveLeft.Text = "Move le&ft";
+            this.miMoveLeft.Text = "Mo&ve left";
             this.miMoveLeft.Click += new System.EventHandler(this.move);
             // 
             // miMoveRight
@@ -137,7 +138,7 @@
             this.miMoveRight.Name = "miMoveRight";
             this.miMoveRight.ShortcutKeyDisplayString = "Right";
             this.miMoveRight.Size = new System.Drawing.Size(258, 22);
-            this.miMoveRight.Text = "Move rig&ht";
+            this.miMoveRight.Text = "Mov&e right";
             this.miMoveRight.Click += new System.EventHandler(this.move);
             // 
             // miRotateClockwise
@@ -145,7 +146,7 @@
             this.miRotateClockwise.Name = "miRotateClockwise";
             this.miRotateClockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Right)));
             this.miRotateClockwise.Size = new System.Drawing.Size(258, 22);
-            this.miRotateClockwise.Text = "Rotate clock&wise";
+            this.miRotateClockwise.Text = "&Rotate clockwise";
             this.miRotateClockwise.Click += new System.EventHandler(this.rotate);
             // 
             // miRotateCounterclockwise
@@ -153,16 +154,8 @@
             this.miRotateCounterclockwise.Name = "miRotateCounterclockwise";
             this.miRotateCounterclockwise.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Left)));
             this.miRotateCounterclockwise.Size = new System.Drawing.Size(258, 22);
-            this.miRotateCounterclockwise.Text = "Rotate counter-clockwi&se";
+            this.miRotateCounterclockwise.Text = "Rotate counter-clock&wise";
             this.miRotateCounterclockwise.Click += new System.EventHandler(this.rotate);
-            // 
-            // miMark
-            // 
-            this.miMark.Name = "miMark";
-            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
-            this.miMark.Size = new System.Drawing.Size(258, 22);
-            this.miMark.Text = "Toggle mar&k";
-            this.miMark.Click += new System.EventHandler(this.toggleMark);
             // 
             // miSep1
             // 
@@ -247,6 +240,8 @@
             this.ctMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuFile,
             this.mnuEdit,
+            this.mnuArrow,
+            this.mnuCloud,
             this.mnuView,
             this.mnuMode,
             this.mnuUnusedCtrlShortcuts});
@@ -264,8 +259,6 @@
             this.miSave,
             this.miSaveAs,
             this.miRevert,
-            this.miSep4,
-            this.miImport,
             this.miSep1,
             this.miCopySource,
             this.miCopyImage,
@@ -300,19 +293,6 @@
             this.miSaveAs.Text = "Save &As...";
             this.miSaveAs.Click += new System.EventHandler(this.saveAs);
             // 
-            // miSep4
-            // 
-            this.miSep4.Name = "miSep4";
-            this.miSep4.Size = new System.Drawing.Size(325, 6);
-            // 
-            // miImport
-            // 
-            this.miImport.Name = "miImport";
-            this.miImport.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
-            this.miImport.Size = new System.Drawing.Size(328, 22);
-            this.miImport.Text = "&Import...";
-            this.miImport.Click += new System.EventHandler(this.import);
-            // 
             // miSep3
             // 
             this.miSep3.Name = "miSep3";
@@ -330,7 +310,7 @@
             this.mnuEdit.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.miUndo,
             this.miRedo,
-            this.miSep8,
+            this.miSep4,
             this.miCut,
             this.miCopy,
             this.miPaste,
@@ -342,17 +322,6 @@
             this.miMoveRight,
             this.miRotateClockwise,
             this.miRotateCounterclockwise,
-            this.miSep2,
-            this.miArrowsOnly,
-            this.miConvertSingleDoubleArrow,
-            this.miToggleInput,
-            this.miMark,
-            this.miAnnotate,
-            this.miSep5,
-            this.miCloudsOnly,
-            this.miColor,
-            this.miSetLabel,
-            this.miBackToOuter,
             this.miEditMnemonics});
             this.mnuEdit.Name = "mnuEdit";
             this.mnuEdit.Size = new System.Drawing.Size(39, 20);
@@ -374,10 +343,10 @@
             this.miRedo.Text = "&Redo";
             this.miRedo.Click += new System.EventHandler(this.redo);
             // 
-            // miSep8
+            // miSep4
             // 
-            this.miSep8.Name = "miSep8";
-            this.miSep8.Size = new System.Drawing.Size(255, 6);
+            this.miSep4.Name = "miSep4";
+            this.miSep4.Size = new System.Drawing.Size(255, 6);
             // 
             // miCut
             // 
@@ -408,83 +377,131 @@
             this.miSep6.Name = "miSep6";
             this.miSep6.Size = new System.Drawing.Size(255, 6);
             // 
-            // miSep2
+            // miEditMnemonics
             // 
-            this.miSep2.Name = "miSep2";
-            this.miSep2.Size = new System.Drawing.Size(255, 6);
+            this.miEditMnemonics.Name = "miEditMnemonics";
+            this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
+            this.miEditMnemonics.Text = "abfgijklnqsxyz";
+            this.miEditMnemonics.Visible = false;
             // 
-            // miArrowsOnly
+            // mnuArrow
             // 
-            this.miArrowsOnly.Enabled = false;
-            this.miArrowsOnly.Name = "miArrowsOnly";
-            this.miArrowsOnly.Size = new System.Drawing.Size(258, 22);
-            this.miArrowsOnly.Text = "Arrows only";
+            this.mnuArrow.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.miConvertSingleDoubleArrow,
+            this.miToggleInput,
+            this.miMark,
+            this.miAnnotate});
+            this.mnuArrow.Name = "mnuArrow";
+            this.mnuArrow.Size = new System.Drawing.Size(51, 20);
+            this.mnuArrow.Text = "&Arrow";
             // 
             // miConvertSingleDoubleArrow
             // 
             this.miConvertSingleDoubleArrow.Name = "miConvertSingleDoubleArrow";
             this.miConvertSingleDoubleArrow.ShortcutKeys = System.Windows.Forms.Keys.F12;
-            this.miConvertSingleDoubleArrow.Size = new System.Drawing.Size(258, 22);
-            this.miConvertSingleDoubleArrow.Text = "Convert s&ingle/double arrow";
+            this.miConvertSingleDoubleArrow.Size = new System.Drawing.Size(250, 22);
+            this.miConvertSingleDoubleArrow.Text = "&Convert single/double arrow";
             this.miConvertSingleDoubleArrow.Click += new System.EventHandler(this.convertSingleDoubleArrow);
             // 
             // miToggleInput
             // 
             this.miToggleInput.Name = "miToggleInput";
             this.miToggleInput.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.miToggleInput.Size = new System.Drawing.Size(258, 22);
-            this.miToggleInput.Text = "Toggle t&erminal";
+            this.miToggleInput.Size = new System.Drawing.Size(250, 22);
+            this.miToggleInput.Text = "&Toggle terminal";
             this.miToggleInput.Click += new System.EventHandler(this.toggleTerminal);
+            // 
+            // miMark
+            // 
+            this.miMark.Name = "miMark";
+            this.miMark.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D1)));
+            this.miMark.Size = new System.Drawing.Size(250, 22);
+            this.miMark.Text = "Toggle &mark";
+            this.miMark.Click += new System.EventHandler(this.toggleMark);
             // 
             // miAnnotate
             // 
             this.miAnnotate.Name = "miAnnotate";
             this.miAnnotate.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.Return)));
-            this.miAnnotate.Size = new System.Drawing.Size(258, 22);
+            this.miAnnotate.Size = new System.Drawing.Size(250, 22);
             this.miAnnotate.Text = "&Annotate...";
             this.miAnnotate.Click += new System.EventHandler(this.annotate);
             // 
-            // miSep5
+            // mnuCloud
             // 
-            this.miSep5.Name = "miSep5";
-            this.miSep5.Size = new System.Drawing.Size(255, 6);
-            // 
-            // miCloudsOnly
-            // 
-            this.miCloudsOnly.Enabled = false;
-            this.miCloudsOnly.Name = "miCloudsOnly";
-            this.miCloudsOnly.Size = new System.Drawing.Size(258, 22);
-            this.miCloudsOnly.Text = "Current cloud only";
+            this.mnuCloud.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.miColor,
+            this.miSetLabel,
+            this.miSep2,
+            this.miImport,
+            this.miCreateCloud,
+            this.editCloudToolStripMenuItem,
+            this.miBackToOuter,
+            this.dissolveCloudToolStripMenuItem});
+            this.mnuCloud.Name = "mnuCloud";
+            this.mnuCloud.Size = new System.Drawing.Size(51, 20);
+            this.mnuCloud.Text = "&Cloud";
             // 
             // miColor
             // 
             this.miColor.Name = "miColor";
-            this.miColor.Size = new System.Drawing.Size(258, 22);
-            this.miColor.Text = "C&olor...";
+            this.miColor.Size = new System.Drawing.Size(239, 22);
+            this.miColor.Text = "&Color...";
             this.miColor.Click += new System.EventHandler(this.cloudColor);
             // 
             // miSetLabel
             // 
             this.miSetLabel.Name = "miSetLabel";
             this.miSetLabel.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.miSetLabel.Size = new System.Drawing.Size(258, 22);
-            this.miSetLabel.Text = "Set &label...";
+            this.miSetLabel.Size = new System.Drawing.Size(239, 22);
+            this.miSetLabel.Text = "&Label...";
             this.miSetLabel.Click += new System.EventHandler(this.setLabel);
+            // 
+            // miSep2
+            // 
+            this.miSep2.Name = "miSep2";
+            this.miSep2.Size = new System.Drawing.Size(236, 6);
+            // 
+            // miImport
+            // 
+            this.miImport.Name = "miImport";
+            this.miImport.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.I)));
+            this.miImport.Size = new System.Drawing.Size(239, 22);
+            this.miImport.Text = "&Import file...";
+            this.miImport.Click += new System.EventHandler(this.import);
+            // 
+            // miCreateCloud
+            // 
+            this.miCreateCloud.Name = "miCreateCloud";
+            this.miCreateCloud.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
+            this.miCreateCloud.Size = new System.Drawing.Size(239, 22);
+            this.miCreateCloud.Text = "&Group into new cloud";
+            this.miCreateCloud.Click += new System.EventHandler(this.createCloud);
+            // 
+            // editCloudToolStripMenuItem
+            // 
+            this.editCloudToolStripMenuItem.Name = "editCloudToolStripMenuItem";
+            this.editCloudToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.E)));
+            this.editCloudToolStripMenuItem.Size = new System.Drawing.Size(239, 22);
+            this.editCloudToolStripMenuItem.Text = "&Edit cloud";
+            this.editCloudToolStripMenuItem.Click += new System.EventHandler(this.editInnerCloud);
             // 
             // miBackToOuter
             // 
             this.miBackToOuter.Name = "miBackToOuter";
             this.miBackToOuter.ShortcutKeyDisplayString = "Backspace";
-            this.miBackToOuter.Size = new System.Drawing.Size(258, 22);
+            this.miBackToOuter.Size = new System.Drawing.Size(239, 22);
             this.miBackToOuter.Text = "&Back to outer cloud";
             this.miBackToOuter.Click += new System.EventHandler(this.backToOuterCloud);
             // 
-            // miEditMnemonics
+            // dissolveCloudToolStripMenuItem
             // 
-            this.miEditMnemonics.Name = "miEditMnemonics";
-            this.miEditMnemonics.Size = new System.Drawing.Size(258, 22);
-            this.miEditMnemonics.Text = "gjnqruxyz";
-            this.miEditMnemonics.Visible = false;
+            this.dissolveCloudToolStripMenuItem.Name = "dissolveCloudToolStripMenuItem";
+            this.dissolveCloudToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.G)));
+            this.dissolveCloudToolStripMenuItem.Size = new System.Drawing.Size(239, 22);
+            this.dissolveCloudToolStripMenuItem.Text = "&Dissolve cloud";
+            this.dissolveCloudToolStripMenuItem.Click += new System.EventHandler(this.dissolveCloud);
             // 
             // mnuView
             // 
@@ -500,7 +517,7 @@
             this.miResetZoom,
             this.miZoomIn,
             this.miZoomOut,
-            this.miSep9,
+            this.miSep5,
             this.miScrollUp,
             this.miScrollDown,
             this.miScrollLeft,
@@ -513,7 +530,7 @@
             // miGrid
             // 
             this.miGrid.Name = "miGrid";
-            this.miGrid.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.G)));
+            this.miGrid.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.R)));
             this.miGrid.Size = new System.Drawing.Size(213, 22);
             this.miGrid.Text = "&Grid";
             this.miGrid.Click += new System.EventHandler(this.toggleViewOption);
@@ -598,10 +615,10 @@
             this.miZoomOut.Text = "Zoom ou&t";
             this.miZoomOut.Click += new System.EventHandler(this.zoomOut);
             // 
-            // miSep9
+            // miSep5
             // 
-            this.miSep9.Name = "miSep9";
-            this.miSep9.Size = new System.Drawing.Size(210, 6);
+            this.miSep5.Name = "miSep5";
+            this.miSep5.Size = new System.Drawing.Size(210, 6);
             // 
             // miScrollUp
             // 
@@ -680,8 +697,8 @@
             // mnuUnusedCtrlShortcuts
             // 
             this.mnuUnusedCtrlShortcuts.Name = "mnuUnusedCtrlShortcuts";
-            this.mnuUnusedCtrlShortcuts.Size = new System.Drawing.Size(182, 20);
-            this.mnuUnusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: befhpqr";
+            this.mnuUnusedCtrlShortcuts.Size = new System.Drawing.Size(172, 20);
+            this.mnuUnusedCtrlShortcuts.Text = "Unused Ctrl Shortcuts: bfhpq";
             this.mnuUnusedCtrlShortcuts.Visible = false;
             // 
             // Mainform
@@ -718,14 +735,11 @@
         private System.Windows.Forms.ToolStripMenuItem miMoveLeft;
         private System.Windows.Forms.ToolStripMenuItem miMoveRight;
         private System.Windows.Forms.ToolStripMenuItem miRevert;
-        private System.Windows.Forms.ToolStripMenuItem miMark;
         private System.Windows.Forms.ToolStripMenuItem miCopySource;
         private System.Windows.Forms.ToolStripMenuItem miCopyImage;
         private System.Windows.Forms.MenuStrip ctMenu;
         private System.Windows.Forms.ToolStripMenuItem mnuEdit;
         private System.Windows.Forms.ToolStripMenuItem mnuFile;
-        private System.Windows.Forms.ToolStripSeparator miSep2;
-        private System.Windows.Forms.ToolStripMenuItem miAnnotate;
         private System.Windows.Forms.ToolStripMenuItem mnuView;
         private System.Windows.Forms.ToolStripMenuItem miGrid;
         private System.Windows.Forms.ToolStripMenuItem miConnectionLines;
@@ -742,20 +756,11 @@
         private System.Windows.Forms.ToolStripMenuItem miSaveAs;
         private System.Windows.Forms.ToolStripSeparator miSep3;
         private System.Windows.Forms.ToolStripMenuItem miExit;
-        private System.Windows.Forms.ToolStripSeparator miSep4;
-        private System.Windows.Forms.ToolStripMenuItem miImport;
         private System.Windows.Forms.ToolStripMenuItem miInnerClouds;
-        private System.Windows.Forms.ToolStripMenuItem miToggleInput;
         private System.Windows.Forms.ToolStripMenuItem miOwnCloud;
         private System.Windows.Forms.ToolStripMenuItem miCoordinates;
         private System.Windows.Forms.ToolStripMenuItem mnuUnusedCtrlShortcuts;
         private System.Windows.Forms.ToolStripMenuItem miSetLabelPosition;
-        private System.Windows.Forms.ToolStripMenuItem miArrowsOnly;
-        private System.Windows.Forms.ToolStripSeparator miSep5;
-        private System.Windows.Forms.ToolStripMenuItem miCloudsOnly;
-        private System.Windows.Forms.ToolStripMenuItem miColor;
-        private System.Windows.Forms.ToolStripMenuItem miSetLabel;
-        private System.Windows.Forms.ToolStripMenuItem miBackToOuter;
         private System.Windows.Forms.ToolStripMenuItem miCut;
         private System.Windows.Forms.ToolStripMenuItem miCopy;
         private System.Windows.Forms.ToolStripMenuItem miPaste;
@@ -767,14 +772,27 @@
         private System.Windows.Forms.ToolStripMenuItem miZoomOut;
         private System.Windows.Forms.ToolStripMenuItem miUndo;
         private System.Windows.Forms.ToolStripMenuItem miRedo;
-        private System.Windows.Forms.ToolStripSeparator miSep8;
-        private System.Windows.Forms.ToolStripMenuItem miConvertSingleDoubleArrow;
-        private System.Windows.Forms.ToolStripSeparator miSep9;
+        private System.Windows.Forms.ToolStripSeparator miSep4;
+        private System.Windows.Forms.ToolStripSeparator miSep5;
         private System.Windows.Forms.ToolStripMenuItem miScrollUp;
         private System.Windows.Forms.ToolStripMenuItem miScrollDown;
         private System.Windows.Forms.ToolStripMenuItem miScrollLeft;
         private System.Windows.Forms.ToolStripMenuItem miScrollRight;
         private System.Windows.Forms.ToolStripMenuItem miViewMnemonics;
+        private System.Windows.Forms.ToolStripMenuItem mnuArrow;
+        private System.Windows.Forms.ToolStripMenuItem miConvertSingleDoubleArrow;
+        private System.Windows.Forms.ToolStripMenuItem miToggleInput;
+        private System.Windows.Forms.ToolStripMenuItem miMark;
+        private System.Windows.Forms.ToolStripMenuItem miAnnotate;
+        private System.Windows.Forms.ToolStripMenuItem mnuCloud;
+        private System.Windows.Forms.ToolStripMenuItem miColor;
+        private System.Windows.Forms.ToolStripMenuItem miSetLabel;
+        private System.Windows.Forms.ToolStripSeparator miSep2;
+        private System.Windows.Forms.ToolStripMenuItem miImport;
+        private System.Windows.Forms.ToolStripMenuItem miCreateCloud;
+        private System.Windows.Forms.ToolStripMenuItem editCloudToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem miBackToOuter;
+        private System.Windows.Forms.ToolStripMenuItem dissolveCloudToolStripMenuItem;
     }
 }
 

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Drawing;
 using System.Text.RegularExpressions;
+using RT.Serialization;
 using RT.Util.ExtensionMethods;
-using RT.Util.Serialization;
 
 namespace ZiimHelper
 {
-    sealed class ColorClassifyOptions : ClassifyTypeOptions, IClassifySubstitute<Color, string>
+    sealed class ColorClassifyOptions : IClassifySubstitute<Color, string>
     {
         public string ToSubstitute(Color instance)
         {

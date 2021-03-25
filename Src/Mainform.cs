@@ -9,32 +9,30 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Linq;
+using RT.Serialization;
 using RT.Util;
-using RT.Util.Dialogs;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
-using RT.Util.Serialization;
-using RT.Util.Xml;
 
 namespace ZiimHelper
 {
     public partial class Mainform : ManagedForm
     {
         private Cloud _editingCloud;
-        private Stack<Cloud> _outerClouds = new Stack<Cloud>();
+        private readonly Stack<Cloud> _outerClouds = new Stack<Cloud>();
         private Cloud _file;
         private string _filename = null;
         private bool _fileChanged = false;
         private HashSet<Item> _selected = new HashSet<Item>();
-        private Stack<UserAction> _undo = new Stack<UserAction>();
-        private Stack<UserAction> _redo = new Stack<UserAction>();
+        private readonly Stack<UserAction> _undo = new Stack<UserAction>();
+        private readonly Stack<UserAction> _redo = new Stack<UserAction>();
 
-        private FontFamily _arrowFont = new FontFamily("Cambria");
-        private FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
-        private FontFamily _annotationFont = new FontFamily("Calibri");
+        private readonly FontFamily _arrowFont = new FontFamily("Cambria");
+        private readonly FontFamily _instructionFont = new FontFamily("Gentium Book Basic");
+        private readonly FontFamily _annotationFont = new FontFamily("Calibri");
 
-        private ClassifyOptions _classifyOptions = new ClassifyOptions();
+        private readonly ClassifyOptions _classifyOptions = new ClassifyOptions();
 
         private sealed class ModeInfo
         {
@@ -42,14 +40,14 @@ namespace ZiimHelper
             public EditMode EditMode { get; private set; }
             public ModeInfo(ToolStripMenuItem menuItem, EditMode editMode) { MenuItem = menuItem; EditMode = editMode; }
         }
-        private ModeInfo[] _modes;
+        private readonly ModeInfo[] _modes;
 
         public Mainform()
             : base(ZiimHelperProgram.Settings.FormSettings)
         {
             InitializeComponent();
 
-            _classifyOptions.AddTypeOptions(typeof(Color), new ColorClassifyOptions());
+            _classifyOptions.AddTypeSubstitution(new ColorClassifyOptions());
 
             _modes = Ut.NewArray(
                 new ModeInfo(miMoveSelect, EditMode.MoveSelect),
@@ -62,8 +60,12 @@ namespace ZiimHelper
             setUi();
             setMode(ZiimHelperProgram.Settings.EditMode);
 
-            this.MouseWheel += mouseWheel;
+            MouseWheel += mouseWheel;
         }
+
+        private bool ctrl => ModifierKeys.HasFlag(Keys.Control);
+        private bool alt => ModifierKeys.HasFlag(Keys.Alt);
+        private bool shift => ModifierKeys.HasFlag(Keys.Shift);
 
         private void deleteItem(object _, EventArgs __)
         {
@@ -210,36 +212,34 @@ namespace ZiimHelper
                     Direction dir = 0;
                     int yn = 0;
 
-                    Ut.IfType(arrow,
-                        (SingleArrowInfo arr) =>
+                    if (arrow is SingleArrowInfo arr)
+                    {
+                        dir = arr.Direction;
+                        var relativeDirections = directions.NullOr(dirs => dirs.Select(d => ((int) d - (int) dir + 8) % 8).ToArray());
+                        instruction =
+                            directions == null ? "0" :
+                            directions.Count == 1 ?
+                                relativeDirections[0] == 1 ? "R" :
+                                relativeDirections[0] == 3 ? "I" :
+                                relativeDirections[0] == 5 ? "N" : null :
+                            directions.Count == 2 ?
+                                relativeDirections.Contains(1) && relativeDirections.Contains(7) ? "C" :
+                                relativeDirections.Contains(3) && relativeDirections.Contains(5) ? "L" : null : null;
+                    }
+                    else if (arrow is DoubleArrowInfo arr2)
+                    {
+                        if (directions == null || directions.Count != 1)
+                            return;
+                        switch (((int) directions[0] - (int) arr2.Direction.GetDirection1() + 8) % 8)
                         {
-                            dir = arr.Direction;
-                            var relativeDirections = directions.NullOr(dirs => dirs.Select(d => ((int) d - (int) dir + 8) % 8).ToArray());
-                            instruction =
-                                directions == null ? "0" :
-                                directions.Count == 1 ?
-                                    relativeDirections[0] == 1 ? "R" :
-                                    relativeDirections[0] == 3 ? "I" :
-                                    relativeDirections[0] == 5 ? "N" : null :
-                                directions.Count == 2 ?
-                                    relativeDirections.Contains(1) && relativeDirections.Contains(7) ? "C" :
-                                    relativeDirections.Contains(3) && relativeDirections.Contains(5) ? "L" : null : null;
-                        },
-                        (DoubleArrowInfo arr) =>
-                        {
-                            if (directions == null || directions.Count != 1)
-                                return;
-                            switch (((int) directions[0] - (int) arr.Direction.GetDirection1() + 8) % 8)
-                            {
-                                case 2: instruction = "S"; dir = arr.Direction.GetDirection1(); break;
-                                case 6: instruction = "S"; dir = arr.Direction.GetDirection2(); break;
-                                case 1: instruction = "Z2"; dir = arr.Direction.GetDirection1(); yn = -1; break;
-                                case 5: instruction = "Z1"; dir = arr.Direction.GetDirection2(); yn = -1; break;
-                                case 3: instruction = "E1"; dir = arr.Direction.GetDirection1(); yn = 1; break;
-                                case 7: instruction = "E2"; dir = arr.Direction.GetDirection2(); yn = 1; break;
-                            }
+                            case 2: instruction = "S"; dir = arr2.Direction.GetDirection1(); break;
+                            case 6: instruction = "S"; dir = arr2.Direction.GetDirection2(); break;
+                            case 1: instruction = "Z2"; dir = arr2.Direction.GetDirection1(); yn = -1; break;
+                            case 5: instruction = "Z1"; dir = arr2.Direction.GetDirection2(); yn = -1; break;
+                            case 3: instruction = "E1"; dir = arr2.Direction.GetDirection1(); yn = 1; break;
+                            case 7: instruction = "E2"; dir = arr2.Direction.GetDirection2(); yn = 1; break;
                         }
-                    );
+                    }
 
                     if (instruction != null)
                         instructionDic.Add(arrow, Tuple.Create(instruction, dir, yn));
@@ -613,9 +613,9 @@ namespace ZiimHelper
 
             var clickedOn = _editingCloud.ItemAt(x, y);
 
-            if (miMoveSelect.Checked && clickedOn != null && !Ut.Ctrl && !Ut.Shift)
+            if (miMoveSelect.Checked && clickedOn != null && !ctrl && !shift)
             {
-                if (!_selected.Contains(clickedOn) && !Ut.Shift)
+                if (!_selected.Contains(clickedOn) && !shift)
                     _selected.Clear();
                 _selected.Add(clickedOn);
                 _mouseMoving = clickedOn;
@@ -639,7 +639,7 @@ namespace ZiimHelper
                 }
                 else
                     // Create a new arrow; it will be added to _editingCloud.Items during mouse up
-                    _arrowReorienting = Ut.Shift ? (ArrowInfo) new DoubleArrowInfo { X = x, Y = y } : new SingleArrowInfo { X = x, Y = y };
+                    _arrowReorienting = shift ? (ArrowInfo) new DoubleArrowInfo { X = x, Y = y } : new SingleArrowInfo { X = x, Y = y };
                 _selected.Clear();
                 ctImage.Invalidate();
             }
@@ -711,7 +711,7 @@ namespace ZiimHelper
             _mouseDraggedTo = new Point(x, y);
 
             if (miMoveSelect.Checked)
-                ctImage.Cursor = _mouseMoving != null || (!Ut.Ctrl && !Ut.Shift && _editingCloud.AllArrows.Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
+                ctImage.Cursor = _mouseMoving != null || (!ctrl && !shift && _editingCloud.AllArrows.Any(a => a.X == x && a.Y == y)) ? Cursors.SizeAll : Cursors.Default;
 
             if (_draggingSelectionRectangle)
                 ctImage.Invalidate();
@@ -743,7 +743,7 @@ namespace ZiimHelper
             }
             else if (_draggingSelectionRectangle)
             {
-                if (!Ut.Shift)
+                if (!shift)
                     _selected.Clear();
 
                 Item alreadyItem;
@@ -769,22 +769,22 @@ namespace ZiimHelper
                 if (_editingCloud.Items.Contains(_arrowReorienting))
                 {
                     // An existing arrow is reoriented
-                    _arrowReorienting.IfType(
-                        (SingleArrowInfo sa) =>
-                        {
-                            if (_arrowReorientingOriginalDirection != sa.Direction)
-                                Do(new ReorientSingleArrow(sa, _arrowReorientingOriginalDirection, sa.Direction));
-                            else
-                                _selected.Add(_arrowReorienting);
-                        },
-                        (DoubleArrowInfo da) =>
-                        {
-                            if (_arrowReorientingOriginalDoubleDirection != da.Direction)
-                                Do(new ReorientDoubleArrow(da, _arrowReorientingOriginalDoubleDirection, da.Direction));
-                            else
-                                _selected.Add(_arrowReorienting);
-                        },
-                        arrow => { throw new InvalidOperationException("Unknown arrow type."); });
+                    if (_arrowReorienting is SingleArrowInfo sa)
+                    {
+                        if (_arrowReorientingOriginalDirection != sa.Direction)
+                            Do(new ReorientSingleArrow(sa, _arrowReorientingOriginalDirection, sa.Direction));
+                        else
+                            _selected.Add(_arrowReorienting);
+                    }
+                    else if (_arrowReorienting is DoubleArrowInfo da)
+                    {
+                        if (_arrowReorientingOriginalDoubleDirection != da.Direction)
+                            Do(new ReorientDoubleArrow(da, _arrowReorientingOriginalDoubleDirection, da.Direction));
+                        else
+                            _selected.Add(_arrowReorienting);
+                    }
+                    else
+                        throw new InvalidOperationException("Unknown arrow type.");
                 }
                 else
                 {
@@ -822,7 +822,7 @@ namespace ZiimHelper
             miCoordinates.Checked = ZiimHelperProgram.Settings.ViewCoordinates;
 
             (ZiimHelperProgram.Settings.EditMode == EditMode.MoveSelect ? miMoveSelect :
-                ZiimHelperProgram.Settings.EditMode == EditMode.Draw ? miDraw : Ut.Throw<ToolStripMenuItem>(new InvalidOperationException())).Checked = true;
+                ZiimHelperProgram.Settings.EditMode == EditMode.Draw ? miDraw : throw new InvalidOperationException()).Checked = true;
 
             refresh();
         }
@@ -861,11 +861,11 @@ namespace ZiimHelper
             var inputStr = InputBox.GetLine(
                 sender == miCopyImageByFont ? "Specify the desired font size:" :
                 sender == miCopyImageByWidth ? "Specify the desired bitmap width:" :
-                sender == miCopyImageByHeight ? "Specify the desired bitmap height:" : Ut.Throw<string>(new InvalidOperationException()),
+                sender == miCopyImageByHeight ? "Specify the desired bitmap height:" : throw new InvalidOperationException(),
 
                 (sender == miCopyImageByFont ? ZiimHelperProgram.Settings.LastCopyImageFontSize :
                 sender == miCopyImageByWidth ? ZiimHelperProgram.Settings.LastCopyImageWidth :
-                sender == miCopyImageByHeight ? ZiimHelperProgram.Settings.LastCopyImageHeight : Ut.Throw<int>(new InvalidOperationException())).ToString(),
+                sender == miCopyImageByHeight ? ZiimHelperProgram.Settings.LastCopyImageHeight : throw new InvalidOperationException()).ToString(),
 
                 "Copy image", "&OK", "&Cancel"
             );
@@ -973,7 +973,7 @@ namespace ZiimHelper
         {
             if (miMoveSelect.Checked)
             {
-                if (Ut.Ctrl || Ut.Shift)
+                if (ctrl || shift)
                     ctImage.Cursor = Cursors.Default;
                 else
                 {
@@ -1289,9 +1289,9 @@ namespace ZiimHelper
 
         private void mouseWheel(object sender, MouseEventArgs e)
         {
-            if (Ut.Ctrl)
+            if (ctrl)
                 changeZoom(Math.Pow(1.1, e.Delta / 120));
-            else if (Ut.Shift)
+            else if (shift)
                 _scrollX -= e.Delta;
             else
                 _scrollY -= e.Delta;
@@ -1315,7 +1315,7 @@ namespace ZiimHelper
 
         private void convertSingleDoubleArrow(object sender, EventArgs e)
         {
-            if (_selected.Count > 0 && _selected.All(item => item.IfType((ArrowInfo ai) => !ai.IsTerminal)))
+            if (_selected.Count > 0 && _selected.All(item => item is ArrowInfo ai && !ai.IsTerminal))
                 Do(_selected.OfType<ArrowInfo>().Select(arrow => new ConvertArrow(arrow, _editingCloud)));
         }
 

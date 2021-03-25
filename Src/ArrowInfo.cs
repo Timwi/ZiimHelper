@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using RT.Serialization;
 using RT.Util;
 using RT.Util.Drawing;
 using RT.Util.ExtensionMethods;
-using RT.Util.Serialization;
 
 namespace ZiimHelper
 {
@@ -62,8 +62,7 @@ namespace ZiimHelper
                 }
                 else
                 {
-                    int miX, maX, miY, maY;
-                    item.GetBounds(out miX, out maX, out miY, out maY);
+                    item.GetBounds(out var miX, out var maX, out var miY, out var maY);
                     minX = Math.Min(minX, miX);
                     maxX = Math.Max(maxX, maX);
                     minY = Math.Min(minY, miY);
@@ -81,14 +80,13 @@ namespace ZiimHelper
         }
 
         [ClassifyIgnore]
-        private static FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
+        private static readonly FontFamily _cloudFont = new FontFamily("Gentium Book Basic");
 
         private void drawCloud(Graphics g, int cellSize, Pen outline = null, bool fill = false, FontStyle style = FontStyle.Regular)
         {
             if (AllArrows.All(a => a.IsTerminal))
                 return;
-            int minX, maxX, minY, maxY;
-            GetBounds(out minX, out maxX, out minY, out maxY);
+            GetBounds(out var minX, out var maxX, out var minY, out var maxY);
             var taken = Ut.NewArray<bool>(maxX - minX + 1, maxY - minY + 1);
             foreach (var arr in AllArrows)
             {
@@ -133,7 +131,8 @@ namespace ZiimHelper
                 var top = Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][i]);
                 var bottom = maxY - minY - Enumerable.Range(0, maxY - minY + 1).IndexOf(i => taken[x][maxY - minY - i]);
                 return (left != -1 && left <= x && right >= x) || (top != -1 && top <= y && bottom >= y);
-            }) { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, cellSize / 10);
+            })
+            { Width = maxX - minX + 1, Height = maxY - minY + 1 }, cellSize, cellSize / 10);
 
             var m = new Matrix();
             m.Translate(cellSize * minX, cellSize * minY);
@@ -244,7 +243,7 @@ namespace ZiimHelper
                 !b && !c ? Direction.Up :
                 c && !d ? Direction.UpRight :
                 d && !a ? Direction.Right :
-                a && !b ? Direction.DownRight : Ut.Throw<Direction>(new InvalidOperationException());
+                a && !b ? Direction.DownRight : throw new InvalidOperationException();
         }
     }
 
@@ -260,7 +259,7 @@ namespace ZiimHelper
                 b == c ? DoubleDirection.UpDown :
                 c != d ? DoubleDirection.UpRightDownLeft :
                 d != a ? DoubleDirection.RightLeft :
-                a != b ? DoubleDirection.DownRightUpLeft : Ut.Throw<DoubleDirection>(new InvalidOperationException());
+                a != b ? DoubleDirection.DownRightUpLeft : throw new InvalidOperationException();
         }
     }
 }

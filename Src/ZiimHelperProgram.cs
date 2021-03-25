@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using RT.PostBuild;
 using RT.Util;
 
 [assembly: AssemblyTitle("ZiimHelper")]
@@ -30,7 +31,7 @@ namespace ZiimHelper
         static int Main(string[] args)
         {
             if (args.Length == 2 && args[0] == "--post-build-check")
-                return Ut.RunPostBuildChecks(args[1], Assembly.GetExecutingAssembly());
+                return PostBuildChecker.RunPostBuildChecks(args[1], Assembly.GetExecutingAssembly());
 
             SettingsUtil.LoadSettings(out ZiimHelperProgram.Settings);
 

@@ -75,9 +75,9 @@ namespace ZiimHelper
         public ConvertArrow(ArrowInfo arrow, Cloud parentCloud)
         {
             OldArrow = arrow;
-            NewArrow = arrow.IfType(
-                (SingleArrowInfo sai) => (ArrowInfo) new DoubleArrowInfo { X = sai.X, Y = sai.Y, Annotation = sai.Annotation, Direction = (DoubleDirection) ((int) sai.Direction % 4), Marked = sai.Marked },
-                (DoubleArrowInfo dai) => (ArrowInfo) new SingleArrowInfo { X = dai.X, Y = dai.Y, Annotation = dai.Annotation, Direction = (Direction) (int) dai.Direction, Marked = dai.Marked });
+            NewArrow =
+                arrow is SingleArrowInfo sai ? new DoubleArrowInfo { X = sai.X, Y = sai.Y, Annotation = sai.Annotation, Direction = (DoubleDirection) ((int) sai.Direction % 4), Marked = sai.Marked } :
+                arrow is DoubleArrowInfo dai ? (ArrowInfo) new SingleArrowInfo { X = dai.X, Y = dai.Y, Annotation = dai.Annotation, Direction = (Direction) (int) dai.Direction, Marked = dai.Marked } : null;
             ParentCloud = parentCloud;
         }
 
@@ -325,19 +325,19 @@ namespace ZiimHelper
 
             foreach (var item in Items)
             {
-                Ut.IfType(item,
-                    (ArrowInfo arrow) =>
-                    {
-                        fix(arrow.X, arrow.Y, (x, y) => { arrow.X = x; arrow.Y = y; });
-                        arrow.Rotate(clockwise);
-                        arrow.Rotate(clockwise);
-                    },
-                    (Cloud cloud) =>
-                    {
-                        fix(cloud.LabelFromX, cloud.LabelFromY, (x, y) => { cloud.LabelFromX = x; cloud.LabelFromY = y; });
-                        fix(cloud.LabelToX, cloud.LabelToY, (x, y) => { cloud.LabelToX = x; cloud.LabelToY = y; });
-                    },
-                    wrongType => { throw new InvalidOperationException("Unexpected type of item."); });
+                if (item is ArrowInfo arrow)
+                {
+                    fix(arrow.X, arrow.Y, (x, y) => { arrow.X = x; arrow.Y = y; });
+                    arrow.Rotate(clockwise);
+                    arrow.Rotate(clockwise);
+                }
+                else if (item is Cloud cloud)
+                {
+                    fix(cloud.LabelFromX, cloud.LabelFromY, (x, y) => { cloud.LabelFromX = x; cloud.LabelFromY = y; });
+                    fix(cloud.LabelToX, cloud.LabelToY, (x, y) => { cloud.LabelToX = x; cloud.LabelToY = y; });
+                }
+                else
+                    throw new InvalidOperationException("Unexpected type of item.");
             }
         }
 
